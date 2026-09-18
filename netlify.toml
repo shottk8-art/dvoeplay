@@ -1,0 +1,9 @@
+# Сайт — статические файлы из public, плюс одна серверная функция для игры по сети.
+# Сборка не нужна: Netlify только поставит зависимости и опубликует.
+
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
