@@ -33,8 +33,32 @@ var NET = (function(){
   var api_ = {
     on: false, live: false, turn: 0,
     code: '', token: '', seat: 0, round: 0, seed: 0,
-    rng: null, oppOnline: false, oppLeft: false
+    rng: null, oppOnline: false, oppLeft: false,
+    myName: '', oppName: ''
   };
+
+  /* Своё имя лежит в общей памяти приложения. Читаем её напрямую, а не
+     через DP: блок DP объявлен внутри замыкания игры и снаружи не виден.
+     Ключ и правила обрезки те же, что в DP — если меняются, менять тут тоже. */
+  var STORE = 'dvoeplay:v1';
+  function clipName(v){
+    return String(v == null ? '' : v).replace(/\s+/g, ' ').replace(/^\s+|\s+$/g, '').slice(0, 12);
+  }
+  function myName(){
+    try {
+      var d = JSON.parse(localStorage.getItem(STORE));
+      return clipName(d && d.names && d.names.me);
+    } catch(e){ return ''; }
+  }
+  function saveMyName(v){
+    try {
+      var d = JSON.parse(localStorage.getItem(STORE));
+      if (!d || typeof d !== 'object') d = { v: 1, games: {} };
+      if (!d.names) d.names = { me: '', friend: '' };
+      d.names.me = clipName(v);
+      localStorage.setItem(STORE, JSON.stringify(d));
+    } catch(e){}
+  }
 
   /* ---------- общая случайность ---------- */
   /* mulberry32: короткий и равномерный, одинаковый у обоих игроков */
@@ -71,6 +95,12 @@ var NET = (function(){
       'font:700 32px/1 -apple-system,system-ui,sans-serif;letter-spacing:10px;',
       'font-variant-numeric:tabular-nums;-webkit-user-select:text;user-select:text}',
     '.np-in::placeholder{color:var(--label3);letter-spacing:10px}',
+    '.np-name{display:block;width:100%;margin:0 0 12px;padding:14px 16px;border:0;border-radius:14px;',
+      'background:var(--fill);color:var(--label);text-align:center;outline:none;',
+      'font:500 17px/1 -apple-system,system-ui,sans-serif;letter-spacing:-.2px;',
+      '-webkit-user-select:text;user-select:text}',
+    '.np-name::placeholder{color:var(--label3);font-weight:400}',
+    '.np-name:focus{box-shadow:0 0 0 3px color-mix(in srgb,var(--tint) 40%,transparent)}',
     '.np-in:focus{box-shadow:0 0 0 3px color-mix(in srgb,var(--tint) 40%,transparent)}',
     '.np-wait{display:flex;align-items:center;justify-content:center;gap:7px;margin:0 0 18px;',
       'font-size:14px;color:var(--label2);letter-spacing:-.1px}',
@@ -104,6 +134,8 @@ var NET = (function(){
       '<h2 id="npTitle">Игра по сети</h2>' +
       '<p class="np-sub" id="npSub">Один создаёт комнату, второй входит по коду</p>' +
       '<div class="np-pane" id="npPick">' +
+        '<input class="np-name" id="npName" type="text" maxlength="12" autocomplete="off" ' +
+               'placeholder="Ваше имя" aria-label="Ваше имя">' +
         '<button class="np-go" id="npNew" type="button">Создать комнату</button>' +
         '<button class="np-alt" id="npHas" type="button">У меня есть код</button>' +
       '</div>' +
@@ -135,9 +167,15 @@ var NET = (function(){
     var id = function(n){ return document.getElementById(n); };
     el = { sheet:id('npSheet'), back:id('npBack'), sub:id('npSub'), msg:id('npMsg'),
            code:id('npCode'), input:id('npInput'), join:id('npJoin'), make:id('npNew'),
-           warn:id('npWarn'),
+           name:id('npName'), warn:id('npWarn'),
            panes:{ pick:id('npPick'), wait:id('npWait'), enter:id('npEnter') } };
 
+    /* имя сохраняем сразу, чтобы оно подставилось и в следующий раз, и в играх */
+    el.name.value = myName();
+    el.name.addEventListener('input', function(){ saveMyName(el.name.value); });
+    el.name.addEventListener('keydown', function(e){
+      if (e.key === 'Enter'){ e.preventDefault(); try{ el.name.blur(); }catch(err){} }
+    });
     el.make.addEventListener('click', create);
     id('npHas').addEventListener('click', function(){
       pane('enter');
@@ -151,10 +189,19 @@ var NET = (function(){
       var v = el.input.value.replace(/\D/g, '').slice(0, 5);
       if (v !== el.input.value) el.input.value = v;
       say('');
-      if (v.length === 5) join(v);
+      if (v.length === 5){
+        /* код введён целиком — клавиатура телефона больше не нужна и
+           иначе остаётся висеть поверх игры */
+        try{ el.input.blur(); }catch(e){}
+        join(v);
+      }
     });
     el.input.addEventListener('keydown', function(e){
-      if (e.key === 'Enter'){ e.preventDefault(); join(el.input.value); }
+      if (e.key === 'Enter'){
+        e.preventDefault();
+        try{ el.input.blur(); }catch(err){}
+        join(el.input.value);
+      }
     });
     el.back.addEventListener('click', cancel);
     var sy = null;
@@ -192,10 +239,15 @@ var NET = (function(){
   function open(){
     build();
     el.code.textContent = '·····';
+    el.name.value = myName();
     pane('pick');
     document.body.classList.add('np-open');
   }
-  function close(){ document.body.classList.remove('np-open'); }
+  function close(){
+    document.body.classList.remove('np-open');
+    try{ if (el.input) el.input.blur(); }catch(e){}
+    try{ if (el.name) el.name.blur(); }catch(e){}
+  }
 
   function announce(t){
     var l = document.getElementById('live');
@@ -255,6 +307,7 @@ var NET = (function(){
     if (v.seat) api_.seat = v.seat;
     api_.oppOnline = !!v.oppOnline;
     api_.oppLeft = !!v.oppLeft;
+    if (v.oppName) api_.oppName = v.oppName;
     /* Очередь по мнению сервера. Игра ведёт свою, но если её местный отсчёт
        отстал — скажем, телефон погасил экран и браузер придержал таймеры —
        игра догоняет по этой цифре. */
@@ -331,12 +384,14 @@ var NET = (function(){
   function create(){
     el.make.disabled = true; el.make.textContent = 'Создаём…';
     el.code.textContent = '·····';
-    call('create', { game: opt ? opt.game : 'dvoeplay' }).then(function(res){
+    api_.myName = myName();
+    call('create', { game: opt ? opt.game : 'dvoeplay', name: api_.myName }).then(function(res){
       el.make.disabled = false; el.make.textContent = 'Создать комнату';
       if (res.status !== 200){ say(res.body.error || 'Не получилось создать комнату'); return; }
       api_.code = res.body.code; api_.token = res.body.token;
       api_.seat = 1; api_.round = 0; api_.seed = res.body.seed;
       api_.on = true; api_.live = false; api_.oppLeft = false; api_.oppOnline = false;
+      api_.oppName = '';
       el.code.textContent = api_.code;
       pane('wait');
       poll(800);
@@ -347,12 +402,14 @@ var NET = (function(){
     code = String(code || '').replace(/\D/g, '');
     if (code.length !== 5){ say('Нужны пять цифр'); return; }
     el.join.disabled = true; el.join.textContent = 'Входим…';
-    call('join', { code: code, game: opt ? opt.game : undefined }).then(function(res){
+    api_.myName = myName();
+    call('join', { code: code, game: opt ? opt.game : undefined, name: api_.myName }).then(function(res){
       el.join.disabled = false; el.join.textContent = 'Войти';
       if (res.status !== 200){ say(res.body.error || 'Не получилось войти'); return; }
       api_.code = code; api_.token = res.body.token;
       api_.seat = 2; api_.round = res.body.round | 0; api_.seed = res.body.seed;
       api_.on = true; api_.oppLeft = false; api_.oppOnline = true;
+      api_.oppName = res.body.oppName || '';
       close();
       begin();
     });

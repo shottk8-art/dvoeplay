@@ -452,12 +452,12 @@ body{
     <div class="scoreboard">
       <div class="slider" id="slider"></div>
       <div class="side" data-p="1" id="side1">
-        <span class="name">Красные</span>
+        <span class="name" id="name1">Красные</span>
         <span class="score" id="score1">0</span>
         <span class="cap">очки</span>
       </div>
       <div class="side" data-p="2" id="side2">
-        <span class="name">Жёлтые</span>
+        <span class="name" id="name2">Жёлтые</span>
         <span class="score" id="score2">0</span>
         <span class="cap">очки</span>
       </div>
@@ -502,7 +502,7 @@ body{
           <span class="num" id="num">30</span>
         </div>
         <div class="wrow" id="erow" role="group" aria-label="Ввод загаданного слова"></div>
-        <p class="note">Соперник, отвернись!</p>
+        <p class="note" id="note">Соперник, отвернись!</p>
       </div>
 
       <div class="tip" id="tip" aria-hidden="true"></div>
@@ -670,6 +670,25 @@ var setter=2, guesser=1, active=1;
 var net={seat:1,round:0};
 var plies=0;          /* сетевых ходов за раунд: слово плюс буквы */
 /* вдвоём — это и «на одном телефоне», и «по сети»: роли и счёт одинаковые */
+/* ---------- имена игроков ---------- */
+/* Своё имя и имя друга лежат в общей памяти приложения, имя сетевого
+   соперника приходит из комнаты. Пусто — показываем как раньше. */
+function who(){
+  var p=DP.names();
+  if(mode===3){
+    var me=p.me||'Вы', them=NET.oppName||'Соперник';
+    return net.seat===2?[them,me]:[me,them];
+  }
+  if(mode===2) return [p.me||'Красные', p.friend||'Жёлтые'];
+  return [p.me||'Вы','Соперник'];
+}
+/* настоящее ли имя у стороны — от этого зависит, как назвать победителя */
+function named(i){
+  var p=DP.names();
+  if(mode===3) return i===net.seat ? !!p.me : !!NET.oppName;
+  if(mode===2) return i===1 ? !!p.me : !!p.friend;
+  return false;
+}
 function duo(){ return mode>=2; }
 function iSet(){ return mode!==3 || setter===net.seat; }      /* я загадываю */
 function iGuess(){ return mode!==3 || guesser===net.seat; }   /* я отгадываю */
@@ -949,6 +968,9 @@ function startSetup(){
   whoEl.textContent = mode===3
     ? (iSet()?'Загадайте слово':'Соперник загадывает слово')
     : (sideName(setter,true)+' загадывают слово');
+  /* «отвернись» — это про один телефон на двоих; по сети экраны разные */
+  document.getElementById('note').textContent = mode!==3 ? 'Соперник, отвернись!'
+    : (iSet() ? 'Соперника рядом нет — слово он не увидит' : 'Слово появится, когда соперник его загадает');
   active=setter;
   word='';
   buildEntry();
@@ -964,7 +986,7 @@ function startSetup(){
   setTimeout(function(){
     if(s!==session||phase!=='set') return;
     startTimer();
-    if(!tipsSeen.set){
+    if(!tipsSeen.set && iSet()){
       markTip('set');
       showTip('Наберите слово из 4–6 букв и нажмите ✓',erowEl,4200);
     }
@@ -1052,8 +1074,8 @@ function guessLetter(ch){
   if(phase!=='guess'||over||locked) return;
   if(mode===3 && !iGuess()) return;      /* загадавший не подсказывает себе сам */
   if(used[ch]) return;
-  if(mode===3) NET.send(ch,guesser);     /* отгадывающий ходит, пока не кончатся попытки */
-  takeLetter(ch);
+  takeLetter(ch);                        /* сначала считаем ход у себя … */
+  if(mode===3) NET.send(ch,guesser);     /* … потом шлём: отгадывающий ходит дальше сам */
 }
 /* буква — своя или пришедшая по сети */
 function takeLetter(ch){
@@ -1115,6 +1137,9 @@ function revealRest(){
 /* ===================== ХОД И ПОДПИСИ ===================== */
 function paintScore(){
   if(!duo()) return;
+  var n=who();
+  document.getElementById('name1').textContent=n[0];
+  document.getElementById('name2').textContent=n[1];
   sliderEl.style.transform='translateX('+(active===1?0:100)+'%)';
   document.getElementById('score1').textContent=wins[1];
   document.getElementById('score2').textContent=wins[2];
@@ -1126,7 +1151,10 @@ function bump(p){
 }
 function paintHint(){
   if(over) return;
-  if(phase==='set'){ hintEl.textContent='Слово из 4–6 букв, потом ✓'; return; }
+  if(phase==='set'){
+    hintEl.textContent = iSet() ? 'Слово из 4–6 букв, потом ✓' : 'Соперник загадывает слово';
+    return;
+  }
   var left=maxMist-mistakes;
   var tail='осталось '+left+' '+errForm(left);
   hintEl.textContent=(mode===3 ? (iGuess()?'Ваш ход · ':'Отгадывает соперник · ')+tail
@@ -1136,26 +1164,26 @@ function paintHint(){
 
 /* ===================== ИТОГ ===================== */
 var FORFEIT=[
-  ['моют посуду','моете посуду'],
-  ['выносят мусор','выносите мусор'],
-  ['заваривают чай','завариваете чай'],
-  ['готовят завтрак','готовите завтрак'],
-  ['пылесосят в комнате','пылесосите в комнате'],
-  ['собирают со стола','собираете со стола'],
-  ['поливают цветы','поливаете цветы'],
-  ['загружают посудомойку','загружаете посудомойку'],
-  ['идут за мороженым','идёте за мороженым'],
-  ['моют пол на кухне','моете пол на кухне'],
-  ['выгуливают собаку','выгуливаете собаку'],
-  ['застилают постель три дня','застилаете постель три дня'],
-  ['уступают пульт на вечер','уступаете пульт на вечер'],
-  ['отжимаются десять раз','отжимаетесь десять раз'],
-  ['рассказывают анекдот','рассказываете анекдот'],
-  ['поют куплет по выбору победителя','поёте куплет по выбору победителя'],
-  ['придумывают ужин на завтра','придумываете ужин на завтра'],
-  ['молчат целую минуту','молчите целую минуту'],
-  ['три раза говорят «ты сегодня сильнее»','три раза говорите «ты сегодня сильнее»'],
-  ['делают победителю комплимент','делаете победителю комплимент']
+  ['моют посуду','моете посуду','моет посуду'],
+  ['выносят мусор','выносите мусор','выносит мусор'],
+  ['заваривают чай','завариваете чай','заваривает чай'],
+  ['готовят завтрак','готовите завтрак','готовит завтрак'],
+  ['пылесосят в комнате','пылесосите в комнате','пылесосит в комнате'],
+  ['собирают со стола','собираете со стола','собирает со стола'],
+  ['поливают цветы','поливаете цветы','поливает цветы'],
+  ['загружают посудомойку','загружаете посудомойку','загружает посудомойку'],
+  ['идут за мороженым','идёте за мороженым','идёт за мороженым'],
+  ['моют пол на кухне','моете пол на кухне','моет пол на кухне'],
+  ['выгуливают собаку','выгуливаете собаку','выгуливает собаку'],
+  ['застилают постель три дня','застилаете постель три дня','застилает постель три дня'],
+  ['уступают пульт на вечер','уступаете пульт на вечер','уступает пульт на вечер'],
+  ['отжимаются десять раз','отжимаетесь десять раз','отжимается десять раз'],
+  ['рассказывают анекдот','рассказываете анекдот','рассказывает анекдот'],
+  ['поют куплет по выбору победителя','поёте куплет по выбору победителя','поёт куплет по выбору победителя'],
+  ['придумывают ужин на завтра','придумываете ужин на завтра','придумывает ужин на завтра'],
+  ['молчат целую минуту','молчите целую минуту','молчит целую минуту'],
+  ['три раза говорят «ты сегодня сильнее»','три раза говорите «ты сегодня сильнее»','три раза говорит «ты сегодня сильнее»'],
+  ['делают победителю комплимент','делаете победителю комплимент','делает победителю комплимент']
 ];
 var lastForfeit=-1, loserSide=0;
 var forfeitEl=document.getElementById('forfeit');
@@ -1164,6 +1192,9 @@ function rollForfeit(){
   var i;
   do{ i=(Math.random()*FORFEIT.length)|0; } while(i===lastForfeit&&FORFEIT.length>1);
   lastForfeit=i;
+  /* по сети фант видит только проигравший — значит и говорить надо ему */
+  if(mode===3) return 'Вы '+FORFEIT[i][1];
+  if(named(loserSide)) return who()[loserSide-1]+' '+FORFEIT[i][2];
   return sideName(loserSide,true)+' '+FORFEIT[i][0];
 }
 forfeitEl.addEventListener('click',function(){
@@ -1225,11 +1256,30 @@ var DP=(function(){
     g.last=Date.now(); g.note=r.note||''; g.mode=r.mode;
     d.games[id]=g; write(d);
   }
+  /* Имена игроков. «me» — тот, кто держит телефон, «friend» — с кем
+     играют вдвоём на одном телефоне. По сети имя соперника приходит из
+     комнаты, здесь оно не хранится. Пусто — значит показываем как раньше. */
+  var nmCache=null, nmAt=0;
+  function clip(s){ return String(s==null?'':s).replace(/\s+/g,' ').replace(/^\s+|\s+$/g,'').slice(0,12); }
+  function names(v){
+    if(v!==undefined){
+      var d=read();
+      d.names={me:clip(v.me),friend:clip(v.friend)};
+      write(d); nmCache=null;
+    }
+    var n=Date.now();
+    if(nmCache===null || n-nmAt>800){
+      var q=read().names||{};
+      nmCache={me:clip(q.me),friend:clip(q.friend)};
+      nmAt=n;
+    }
+    return nmCache;
+  }
   function sound(v){
     if(v===undefined){ try{ return read().sound!==false; }catch(e){ return true; } }
     var d=read(); d.sound=!!v; write(d); return d.sound;
   }
-  return {read:read,save:save,sound:sound};
+  return {read:read,save:save,sound:sound,names:names};
 })();
 /* ---------- звук и тактильная отдача dvoeplay ---------- */
 /* Тот же блок стоит в index.html и во всех играх серии.
@@ -1432,8 +1482,13 @@ function openSheet(win){
     var scorer=win?guesser:setter;
     titleEl.textContent = mode===3
       ? (scorer===net.seat ? (win?'Вы отгадали слово':'Ваше слово устояло')
-                           : (win?'Соперник отгадал слово':'Слово соперника устояло'))
-      : (win? sideName(guesser,true)+' отгадали слово' : 'Слово устояло');
+                           : (named(scorer)
+                              ? (win? who()[scorer-1]+' отгадал(а) слово'
+                                    : who()[scorer-1]+' загадал(а) — слово устояло')
+                              : (win?'Соперник отгадал слово':'Слово соперника устояло')))
+      : (win ? (named(guesser) ? who()[guesser-1]+' отгадал(а) слово'
+                                : sideName(guesser,true)+' отгадали слово')
+             : 'Слово устояло');
     subEl.textContent = W+' · счёт '+wins[1]+' : '+wins[2];
     m.className='medal';
     m.style.setProperty('--a',scorer===1?'var(--red-a)':'var(--yel-a)');

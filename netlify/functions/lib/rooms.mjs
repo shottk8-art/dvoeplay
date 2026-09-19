@@ -19,6 +19,14 @@ const LIFETIME = 3 * 60 * 60 * 1000;   /* комната живёт 3 часа �
 const AWOL     = 25 * 1000;            /* столько тишины — считаем соперника отключившимся */
 const MAX_MOVES = 800;
 const MAX_MOVE_CHARS = 64;             /* столько символов хватает на слово и на пару чисел */
+const MAX_NAME_CHARS = 12;             /* имя игрока; длиннее не влезает в табло */
+
+/* имя приходит от игрока, поэтому чистим: одна строка, без лишних пробелов */
+const clean = (v) => String(v == null ? '' : v)
+  .replace(/[\u0000-\u001f\u007f]/g, '')
+  .replace(/\s+/g, ' ')
+  .trim()
+  .slice(0, MAX_NAME_CHARS);
 
 const now = () => Date.now();
 const rnd = (n) => Math.floor(Math.random() * n);
@@ -53,6 +61,7 @@ function blank(game){
     round: 0,
     turn: starterOf(0),
     seats: [null, null],     /* токены игроков */
+    who: ['', ''],           /* имена игроков, как они себя назвали */
     seen: [0, 0],            /* когда каждый последний раз выходил на связь */
     moves: [],
     rematch: [false, false],
@@ -79,6 +88,7 @@ function view(room, seat, since, at){
     joined: !!(room.seats[0] && room.seats[1]),
     oppOnline: !!room.seats[other - 1] && alive(room, other, at),
     oppLeft: room.seats[other - 1] === false,
+    oppName: (room.who && room.who[other - 1]) || '',
     total: room.moves.length,
     since: Math.max(0, since | 0),
     moves: room.moves.slice(Math.max(0, since | 0)),
@@ -106,6 +116,7 @@ export async function handle(store, action, data){
       const token = newToken();
       room.seats[0] = token;
       room.seen[0] = at;
+      room.who[0] = clean(data.name);
       await store.set(key(code), room);
       return ok({ code, token, seat: 1, seed: room.seed, round: 0, turn: room.turn });
     }
@@ -133,9 +144,12 @@ export async function handle(store, action, data){
     const token = newToken();
     room.seats[1] = token;
     room.seen[1] = at;
+    if (!room.who) room.who = ['', ''];
+    room.who[1] = clean(data.name);
     room.touched = at;
     await store.set(key(code), room);
-    return ok({ code, token, seat: 2, game: room.game, seed: room.seed, round: room.round, turn: room.turn });
+    return ok({ code, token, seat: 2, game: room.game, seed: room.seed,
+                round: room.round, turn: room.turn, oppName: room.who[0] || '' });
   }
 
   const seat = seatOf(room, data.token);

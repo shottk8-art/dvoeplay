@@ -545,6 +545,25 @@ var keyState={};
 var over=false, locked=false, session=0;
 var turn=1, starter=1, attemptsUsed={1:0,2:0};
 /* вдвоём — это и «на одном телефоне», и «по сети»: поле и счёт одинаковые */
+/* ---------- имена игроков ---------- */
+/* Своё имя и имя друга лежат в общей памяти приложения, имя сетевого
+   соперника приходит из комнаты. Пусто — показываем как раньше. */
+function who(){
+  var p=DP.names();
+  if(mode===3){
+    var me=p.me||'Вы', them=NET.oppName||'Соперник';
+    return net.seat===2?[them,me]:[me,them];
+  }
+  if(mode===2) return [p.me||'Красные', p.friend||'Жёлтые'];
+  return [p.me||'Вы','Соперник'];
+}
+/* настоящее ли имя у стороны — от этого зависит, как назвать победителя */
+function named(i){
+  var p=DP.names();
+  if(mode===3) return i===net.seat ? !!p.me : !!NET.oppName;
+  if(mode===2) return i===1 ? !!p.me : !!p.friend;
+  return false;
+}
 function duo(){ return mode>=2; }
 function notMine(){ return mode===3 && turn!==net.seat; }
 var wins=[0,0,0], solved=0, played=0;
@@ -821,6 +840,9 @@ function keepRowVisible(){
 }
 function paintScoreboard(){
   if(!duo()) return;
+  var n=who();
+  document.getElementById('name1').textContent=n[0];
+  document.getElementById('name2').textContent=n[1];
   sliderEl.style.transform='translateX('+(turn===1?0:100)+'%)';
   document.getElementById('score1').textContent=attemptsUsed[1];
   document.getElementById('score2').textContent=attemptsUsed[2];
@@ -834,26 +856,26 @@ function paintHint(){
 
 /* ===================== ИТОГ ===================== */
 var FORFEIT=[
-  ['моют посуду','моете посуду'],
-  ['выносят мусор','выносите мусор'],
-  ['заваривают чай','завариваете чай'],
-  ['готовят завтрак','готовите завтрак'],
-  ['пылесосят в комнате','пылесосите в комнате'],
-  ['собирают со стола','собираете со стола'],
-  ['поливают цветы','поливаете цветы'],
-  ['загружают посудомойку','загружаете посудомойку'],
-  ['идут за мороженым','идёте за мороженым'],
-  ['моют пол на кухне','моете пол на кухне'],
-  ['выгуливают собаку','выгуливаете собаку'],
-  ['застилают постель три дня','застилаете постель три дня'],
-  ['уступают пульт на вечер','уступаете пульт на вечер'],
-  ['отжимаются десять раз','отжимаетесь десять раз'],
-  ['рассказывают анекдот','рассказываете анекдот'],
-  ['поют куплет по выбору победителя','поёте куплет по выбору победителя'],
-  ['придумывают ужин на завтра','придумываете ужин на завтра'],
-  ['молчат целую минуту','молчите целую минуту'],
-  ['три раза говорят «ты сегодня сильнее»','три раза говорите «ты сегодня сильнее»'],
-  ['делают победителю комплимент','делаете победителю комплимент']
+  ['моют посуду','моете посуду','моет посуду'],
+  ['выносят мусор','выносите мусор','выносит мусор'],
+  ['заваривают чай','завариваете чай','заваривает чай'],
+  ['готовят завтрак','готовите завтрак','готовит завтрак'],
+  ['пылесосят в комнате','пылесосите в комнате','пылесосит в комнате'],
+  ['собирают со стола','собираете со стола','собирает со стола'],
+  ['поливают цветы','поливаете цветы','поливает цветы'],
+  ['загружают посудомойку','загружаете посудомойку','загружает посудомойку'],
+  ['идут за мороженым','идёте за мороженым','идёт за мороженым'],
+  ['моют пол на кухне','моете пол на кухне','моет пол на кухне'],
+  ['выгуливают собаку','выгуливаете собаку','выгуливает собаку'],
+  ['застилают постель три дня','застилаете постель три дня','застилает постель три дня'],
+  ['уступают пульт на вечер','уступаете пульт на вечер','уступает пульт на вечер'],
+  ['отжимаются десять раз','отжимаетесь десять раз','отжимается десять раз'],
+  ['рассказывают анекдот','рассказываете анекдот','рассказывает анекдот'],
+  ['поют куплет по выбору победителя','поёте куплет по выбору победителя','поёт куплет по выбору победителя'],
+  ['придумывают ужин на завтра','придумываете ужин на завтра','придумывает ужин на завтра'],
+  ['молчат целую минуту','молчите целую минуту','молчит целую минуту'],
+  ['три раза говорят «ты сегодня сильнее»','три раза говорите «ты сегодня сильнее»','три раза говорит «ты сегодня сильнее»'],
+  ['делают победителю комплимент','делаете победителю комплимент','делает победителю комплимент']
 ];
 var lastForfeit=-1, loserSide=0;
 var forfeitEl=document.getElementById('forfeit');
@@ -862,7 +884,10 @@ function rollForfeit(){
   var i;
   do{ i=(Math.random()*FORFEIT.length)|0; } while(i===lastForfeit&&FORFEIT.length>1);
   lastForfeit=i;
-  if(mode===2) return (loserSide===1?'Красные ':'Жёлтые ')+FORFEIT[i][0];
+  if(mode===2){
+    if(named(loserSide)) return who()[loserSide-1]+' '+FORFEIT[i][2];
+    return (loserSide===1?'Красные ':'Жёлтые ')+FORFEIT[i][0];
+  }
   return 'Вы '+FORFEIT[i][1];
 }
 forfeitEl.addEventListener('click',function(){
@@ -906,11 +931,30 @@ var DP=(function(){
     g.last=Date.now(); g.note=r.note||''; g.mode=r.mode;
     d.games[id]=g; write(d);
   }
+  /* Имена игроков. «me» — тот, кто держит телефон, «friend» — с кем
+     играют вдвоём на одном телефоне. По сети имя соперника приходит из
+     комнаты, здесь оно не хранится. Пусто — значит показываем как раньше. */
+  var nmCache=null, nmAt=0;
+  function clip(s){ return String(s==null?'':s).replace(/\s+/g,' ').replace(/^\s+|\s+$/g,'').slice(0,12); }
+  function names(v){
+    if(v!==undefined){
+      var d=read();
+      d.names={me:clip(v.me),friend:clip(v.friend)};
+      write(d); nmCache=null;
+    }
+    var n=Date.now();
+    if(nmCache===null || n-nmAt>800){
+      var q=read().names||{};
+      nmCache={me:clip(q.me),friend:clip(q.friend)};
+      nmAt=n;
+    }
+    return nmCache;
+  }
   function sound(v){
     if(v===undefined){ try{ return read().sound!==false; }catch(e){ return true; } }
     var d=read(); d.sound=!!v; write(d); return d.sound;
   }
-  return {read:read,save:save,sound:sound};
+  return {read:read,save:save,sound:sound,names:names};
 })();
 /* ---------- звук и тактильная отдача dvoeplay ---------- */
 /* Тот же блок стоит в index.html и во всех играх серии.
@@ -1116,8 +1160,10 @@ function openSheet(outcomeSide){
       forfeitEl.classList.remove('on');
     }else{
       titleEl.textContent = mode===3
-        ? (outcomeSide===net.seat?'Вы угадали':'Угадал соперник')
-        : ('Победили '+(outcomeSide===1?'красные':'жёлтые'));
+        ? (outcomeSide===net.seat ? 'Вы угадали'
+           : (named(outcomeSide) ? 'Угадал(а) '+who()[outcomeSide-1] : 'Угадал соперник'))
+        : (named(outcomeSide) ? 'Победа: '+who()[outcomeSide-1]
+           : 'Победили '+(outcomeSide===1?'красные':'жёлтые'));
       subEl.textContent='Угадали за '+(curRow+1)+' поп. · счёт '+wins[1]+' : '+wins[2];
       m.className='medal';
       m.style.setProperty('--a',outcomeSide===1?'var(--red-a)':'var(--yel-a)');
@@ -1191,6 +1237,7 @@ function newRound(){
     var st=session;
     setTimeout(function(){
       if(st!==session||over) return;
+      if(notMine()) return;          /* ждущему это подсказывать незачем */
       markTip('start');
       showTip('Введите любое слово из пяти букв и нажмите ✓',0,5200);
     },780);

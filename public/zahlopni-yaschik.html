@@ -740,10 +740,26 @@ function later(ms,fn){
 function clearTimers(){ timers.forEach(clearTimeout); timers=[]; }
 function haptic(v,kind){ FX.fire(v,kind); }
 function rnd(n){ return 1+((Math.random()*n)|0); }
-function names(){
-  if(mode===3) return net.seat===2?['Соперник','Вы']:['Вы','Соперник'];
-  return mode===2?['Красные','Жёлтые']:['Вы','Соперник'];
+/* ---------- имена игроков ---------- */
+/* Своё имя и имя друга лежат в общей памяти приложения, имя сетевого
+   соперника приходит из комнаты. Пусто — показываем как раньше. */
+function who(){
+  var p=DP.names();
+  if(mode===3){
+    var me=p.me||'Вы', them=NET.oppName||'Соперник';
+    return net.seat===2?[them,me]:[me,them];
+  }
+  if(mode===2) return [p.me||'Красные', p.friend||'Жёлтые'];
+  return [p.me||'Вы','Соперник'];
 }
+/* настоящее ли имя у стороны — от этого зависит, как назвать победителя */
+function named(i){
+  var p=DP.names();
+  if(mode===3) return i===net.seat ? !!p.me : !!NET.oppName;
+  if(mode===2) return i===1 ? !!p.me : !!p.friend;
+  return false;
+}
+function names(){ return who(); }
 /* сейчас не наша очередь: против ИИ это второй игрок, по сети — чужое место */
 function notMine(){
   if(mode===3) return turn!==net.seat;
@@ -872,7 +888,8 @@ function shake(i){          /* эту цифру закрыть нельзя —
 function hintInfo(){
   /* сумму броска не пишем: игрок считает кубики сам */
   if(over||hintMsg) return {t:hintMsg,hot:false};
-  if(isAI(turn)){
+  /* ход соперника — и когда это ИИ, и когда живой игрок по сети */
+  if(isAI(turn) || notMine()){
     if(rolling) return {t:'Соперник бросает кубики',hot:false};
     if(pending) return {t:'Соперник закрывает',hot:false};
     return {t:'Ход соперника',hot:false};
@@ -883,17 +900,23 @@ function hintInfo(){
   if(oneDie(openMask)) return {t:'Остались только 1 и 2 — бросается один кубик',hot:true};
   return {t:mode===2?('Ход '+(turn===1?'красных':'жёлтых')+' — бросьте кубики'):'Ваш ход — бросьте кубики',hot:false};
 }
+/* точка ожидания: против ИИ всегда справа, по сети — у того, чей ход */
+function waitSide(){
+  if(over) return 0;
+  if(mode===3) return turn!==net.seat ? turn : 0;
+  return (locked && isAI(turn)) ? 2 : 0;
+}
 function paint(){
-  var n=names();
-  var thinking=(locked && !over && isAI(turn));
+  var n=names(), DOTS=' <span class="dots"><i></i><i></i><i></i></span>';
+  var wait=waitSide();
   sliderEl.style.transform='translateX('+(turn===1?0:100)+'%)';
   sliderEl.style.opacity=over?'0':'1';
-  nameEl[1].textContent=n[0];
-  nameEl[2].innerHTML=n[1]+(thinking?' <span class="dots"><i></i><i></i><i></i></span>':'');
+  nameEl[1].innerHTML=n[0]+(wait===1?DOTS:'');
+  nameEl[2].innerHTML=n[1]+(wait===2?DOTS:'');
   scoreEl[1].textContent=scores[1];
   scoreEl[2].textContent=scores[2];
 
-  var mine=!isAI(turn);
+  var mine=!isAI(turn) && !notMine();   /* по сети ждущий тоже не бросает */
   rollEl.disabled=over||locked||rolling||!!pending||!mine;
   rollEl.textContent=(!mine&&!over)?'Ходит соперник':'Бросить';
   pitEl.disabled=rollEl.disabled;
@@ -1028,7 +1051,7 @@ function applyMove(sub){
   haptic(11);
   paint();
   bump(p);
-  liveEl.textContent=(mode===2?names()[p-1]:(p===1?'Вы':'Соперник'))+': +'+SUMOF[sub];
+  liveEl.textContent=names()[p-1]+': +'+SUMOF[sub];
   if(openMask===0){
     rackEl.classList.add('win');
     finishRound('shut');
@@ -1060,26 +1083,26 @@ function aiPick(mask,s){
 
 /* ===================== ИТОГ ===================== */
 var FORFEIT=[
-  ['моют посуду','моете посуду'],
-  ['выносят мусор','выносите мусор'],
-  ['заваривают чай','завариваете чай'],
-  ['готовят завтрак','готовите завтрак'],
-  ['пылесосят в комнате','пылесосите в комнате'],
-  ['собирают со стола','собираете со стола'],
-  ['поливают цветы','поливаете цветы'],
-  ['загружают посудомойку','загружаете посудомойку'],
-  ['идут за мороженым','идёте за мороженым'],
-  ['моют пол на кухне','моете пол на кухне'],
-  ['выгуливают собаку','выгуливаете собаку'],
-  ['застилают постель три дня','застилаете постель три дня'],
-  ['уступают пульт на вечер','уступаете пульт на вечер'],
-  ['отжимаются десять раз','отжимаетесь десять раз'],
-  ['рассказывают анекдот','рассказываете анекдот'],
-  ['поют куплет по выбору победителя','поёте куплет по выбору победителя'],
-  ['придумывают ужин на завтра','придумываете ужин на завтра'],
-  ['молчат целую минуту','молчите целую минуту'],
-  ['три раза говорят «ты сегодня сильнее»','три раза говорите «ты сегодня сильнее»'],
-  ['делают победителю комплимент','делаете победителю комплимент']
+  ['моют посуду','моете посуду','моет посуду'],
+  ['выносят мусор','выносите мусор','выносит мусор'],
+  ['заваривают чай','завариваете чай','заваривает чай'],
+  ['готовят завтрак','готовите завтрак','готовит завтрак'],
+  ['пылесосят в комнате','пылесосите в комнате','пылесосит в комнате'],
+  ['собирают со стола','собираете со стола','собирает со стола'],
+  ['поливают цветы','поливаете цветы','поливает цветы'],
+  ['загружают посудомойку','загружаете посудомойку','загружает посудомойку'],
+  ['идут за мороженым','идёте за мороженым','идёт за мороженым'],
+  ['моют пол на кухне','моете пол на кухне','моет пол на кухне'],
+  ['выгуливают собаку','выгуливаете собаку','выгуливает собаку'],
+  ['застилают постель три дня','застилаете постель три дня','застилает постель три дня'],
+  ['уступают пульт на вечер','уступаете пульт на вечер','уступает пульт на вечер'],
+  ['отжимаются десять раз','отжимаетесь десять раз','отжимается десять раз'],
+  ['рассказывают анекдот','рассказываете анекдот','рассказывает анекдот'],
+  ['поют куплет по выбору победителя','поёте куплет по выбору победителя','поёт куплет по выбору победителя'],
+  ['придумывают ужин на завтра','придумываете ужин на завтра','придумывает ужин на завтра'],
+  ['молчат целую минуту','молчите целую минуту','молчит целую минуту'],
+  ['три раза говорят «ты сегодня сильнее»','три раза говорите «ты сегодня сильнее»','три раза говорит «ты сегодня сильнее»'],
+  ['делают победителю комплимент','делаете победителю комплимент','делает победителю комплимент']
 ];
 var lastForfeit=-1, loserSide=0;
 var forfeitEl=document.getElementById('forfeit');
@@ -1088,7 +1111,10 @@ function rollForfeit(){
   var i;
   do{ i=(Math.random()*FORFEIT.length)|0; } while(i===lastForfeit&&FORFEIT.length>1);
   lastForfeit=i;
-  if(mode===2) return (loserSide===1?'Красные ':'Жёлтые ')+FORFEIT[i][0];
+  if(mode===2){
+    if(named(loserSide)) return who()[loserSide-1]+' '+FORFEIT[i][2];
+    return (loserSide===1?'Красные ':'Жёлтые ')+FORFEIT[i][0];
+  }
   return 'Вы '+FORFEIT[i][1];
 }
 forfeitEl.addEventListener('click',function(){
@@ -1131,11 +1157,30 @@ var DP=(function(){
     g.last=Date.now(); g.note=r.note||''; g.mode=r.mode;
     d.games[id]=g; write(d);
   }
+  /* Имена игроков. «me» — тот, кто держит телефон, «friend» — с кем
+     играют вдвоём на одном телефоне. По сети имя соперника приходит из
+     комнаты, здесь оно не хранится. Пусто — значит показываем как раньше. */
+  var nmCache=null, nmAt=0;
+  function clip(s){ return String(s==null?'':s).replace(/\s+/g,' ').replace(/^\s+|\s+$/g,'').slice(0,12); }
+  function names(v){
+    if(v!==undefined){
+      var d=read();
+      d.names={me:clip(v.me),friend:clip(v.friend)};
+      write(d); nmCache=null;
+    }
+    var n=Date.now();
+    if(nmCache===null || n-nmAt>800){
+      var q=read().names||{};
+      nmCache={me:clip(q.me),friend:clip(q.friend)};
+      nmAt=n;
+    }
+    return nmCache;
+  }
   function sound(v){
     if(v===undefined){ try{ return read().sound!==false; }catch(e){ return true; } }
     var d=read(); d.sound=!!v; write(d); return d.sound;
   }
-  return {read:read,save:save,sound:sound};
+  return {read:read,save:save,sound:sound,names:names};
 })();
 /* ---------- звук и тактильная отдача dvoeplay ---------- */
 /* Тот же блок стоит в index.html и во всех играх серии.
@@ -1339,8 +1384,9 @@ function openSheet(winner,r1,r2,why){
     forfeitEl.classList.remove('on');
   }else{
     document.getElementById('sheetTitle').textContent =
-      mode===2 ? ('Победили '+n[winner-1].toLowerCase())
-      : mode===3 ? (winner===net.seat?'Вы выиграли':'Соперник выиграл')
+      mode===2 ? (named(winner) ? 'Победа: '+n[winner-1] : 'Победили '+(winner===1?'красные':'жёлтые'))
+      : mode===3 ? (winner===net.seat ? 'Вы выиграли'
+                    : (named(winner) ? 'Победа: '+n[winner-1] : 'Соперник выиграл'))
       : (winner===1?'Вы выиграли':'Соперник выиграл');
     m.className='medal';
     m.style.setProperty('--a',winner===1?'var(--red-a)':'var(--yel-a)');
@@ -1397,7 +1443,9 @@ function tryRoll(){
     rollNo++;
     var sum=rollSum();
     rollNo--;
-    NET.send(-1, hasCombo(openMask,sum) ? net.seat : 3-net.seat);
+    rollDice(1150);                       /* сначала считаем ход у себя … */
+    NET.send(-1, hasCombo(openMask,sum) ? net.seat : 3-net.seat);   /* … потом шлём */
+    return;
   }
   rollDice(1150);
 }

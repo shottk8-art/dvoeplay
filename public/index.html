@@ -228,6 +228,15 @@ body{
   background:var(--fill);color:var(--label);transition:transform .14s var(--spring),opacity .14s;
 }
 .btn+.btn{margin-top:9px}
+.nlab{display:block;margin:0 4px 6px;font-size:13px;color:var(--label2);letter-spacing:-.05px}
+.nin{
+  display:block;width:100%;margin:0 0 14px;padding:13px 15px;border:0;border-radius:14px;
+  background:var(--surface);color:var(--label);box-shadow:var(--card-shadow);
+  font:500 17px/1 -apple-system,system-ui,sans-serif;letter-spacing:-.2px;outline:none;
+  -webkit-user-select:text;user-select:text;
+}
+.nin::placeholder{color:var(--label3);font-weight:400}
+.nin:focus{box-shadow:var(--card-shadow),0 0 0 3px color-mix(in srgb,var(--tint) 40%,transparent)}
 .btn.primary{background:var(--tint);color:#fff}
 .btn.warn{color:var(--red-b)}
 .btn:active{transform:scale(.97);opacity:.9}
@@ -256,6 +265,9 @@ body{
     <h1 class="wordmark">dv<span class="o"></span>eplay</h1>
     <div class="tools">
       <button class="iconbtn" id="sndBtn" type="button" aria-label="Звук"></button>
+      <button class="iconbtn" id="whoBtn" type="button" aria-label="Имена игроков">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.6"/><path d="M4.8 20c.6-3.8 3.6-6 7.2-6s6.6 2.2 7.2 6"/></svg>
+      </button>
       <button class="iconbtn" id="statBtn" type="button" aria-label="Статистика">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>
       </button>
@@ -284,7 +296,19 @@ body{
 
 </div>
 
+<div class="sr" aria-live="polite" id="live"></div>
 <div class="backdrop" id="backdrop"></div>
+<aside class="sheet" id="whoSheet" role="dialog" aria-modal="true" aria-labelledby="whoTitle">
+  <div class="grab"></div>
+  <h2 id="whoTitle">Имена игроков</h2>
+  <p class="sub">Подставятся в табло, итоги и фанты — во всех играх</p>
+  <label class="nlab" for="nameMe">Вы</label>
+  <input class="nin" id="nameMe" type="text" maxlength="12" autocomplete="off" placeholder="Например, Карл">
+  <label class="nlab" for="nameFriend">Друг — когда играете на одном телефоне</label>
+  <input class="nin" id="nameFriend" type="text" maxlength="12" autocomplete="off" placeholder="Например, Аня">
+  <p class="sub" style="margin:14px 0 0">По сети имя соперника придёт из его телефона</p>
+  <button class="btn primary" id="whoClose" type="button">Готово</button>
+</aside>
 <aside class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="statTitle">
   <div class="grab"></div>
   <h2 id="statTitle">Статистика</h2>
@@ -321,11 +345,30 @@ var DP=(function(){
     d.games[id]=g; write(d);
   }
   function clear(){ try{ localStorage.removeItem(KEY); }catch(e){} }
+  /* Имена игроков. «me» — тот, кто держит телефон, «friend» — с кем
+     играют вдвоём на одном телефоне. По сети имя соперника приходит из
+     комнаты, здесь оно не хранится. Пусто — значит показываем как раньше. */
+  var nmCache=null, nmAt=0;
+  function clip(s){ return String(s==null?'':s).replace(/\s+/g,' ').replace(/^\s+|\s+$/g,'').slice(0,12); }
+  function names(v){
+    if(v!==undefined){
+      var d=read();
+      d.names={me:clip(v.me),friend:clip(v.friend)};
+      write(d); nmCache=null;
+    }
+    var n=Date.now();
+    if(nmCache===null || n-nmAt>800){
+      var q=read().names||{};
+      nmCache={me:clip(q.me),friend:clip(q.friend)};
+      nmAt=n;
+    }
+    return nmCache;
+  }
   function sound(v){
     if(v===undefined){ try{ return read().sound!==false; }catch(e){ return true; } }
     var d=read(); d.sound=!!v; write(d); return d.sound;
   }
-  return {read:read,save:save,clear:clear,sound:sound};
+  return {read:read,save:save,clear:clear,sound:sound,names:names};
 })();
 /* ---------- звук и тактильная отдача dvoeplay ---------- */
 /* Тот же блок стоит в index.html и во всех играх серии.
@@ -701,6 +744,30 @@ function plural(n,a,b,c){
 function openStats(){ renderStats(); backdrop.classList.add('on'); sheetEl.classList.add('on'); }
 function closeStats(){ backdrop.classList.remove('on'); sheetEl.classList.remove('on'); }
 
+/* ---------- имена игроков ---------- */
+/* Одно место на всё приложение: игры читают имена из общей памяти. */
+var whoSheet=document.getElementById('whoSheet');
+var meEl=document.getElementById('nameMe'), friendEl=document.getElementById('nameFriend');
+function saveWho(){ DP.names({me:meEl.value, friend:friendEl.value}); }
+function openWho(){
+  var p=DP.names();
+  meEl.value=p.me; friendEl.value=p.friend;
+  backdrop.classList.add('on'); whoSheet.classList.add('on');
+}
+function closeWho(){
+  saveWho();
+  try{ meEl.blur(); friendEl.blur(); }catch(e){}
+  backdrop.classList.remove('on'); whoSheet.classList.remove('on');
+  renderRecent();
+}
+meEl.addEventListener('input',saveWho);
+friendEl.addEventListener('input',saveWho);
+[meEl,friendEl].forEach(function(el){
+  el.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); el.blur(); } });
+});
+document.getElementById('whoBtn').addEventListener('click',openWho);
+document.getElementById('whoClose').addEventListener('click',closeWho);
+
 /* ---------- переключатель звука ---------- */
 var sndBtn=document.getElementById('sndBtn');
 var SND_ON="<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M11 5L6.5 9H3v6h3.5L11 19z'/><path d='M15.5 8.8a4.5 4.5 0 0 1 0 6.4'/><path d='M18.5 6a8 8 0 0 1 0 12'/></svg>";
@@ -721,7 +788,9 @@ paintSound();
 
 document.getElementById('statBtn').addEventListener('click',openStats);
 document.getElementById('statClose').addEventListener('click',closeStats);
-backdrop.addEventListener('click',closeStats);
+backdrop.addEventListener('click',function(){
+  if(whoSheet.classList.contains('on')) closeWho(); else closeStats();
+});
 document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeStats(); });
 resetBtn.addEventListener('click',function(){
   if(!resetArmed){ resetArmed=true; resetBtn.textContent='Точно сбросить?'; return; }
