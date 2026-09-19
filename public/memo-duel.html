@@ -289,6 +289,10 @@ body{
         <span class="t"><b>Вдвоём</b><i>На одном телефоне, по очереди</i></span>
         <svg class="chev" viewBox="0 0 9 14"><path d="M1.6 1.4 7 7l-5.4 5.6"/></svg>
       </button>
+      <button class="row" data-mode="3">
+        <span class="t"><b>По сети</b><i>На двух телефонах, по коду комнаты</i></span>
+        <svg class="chev" viewBox="0 0 9 14"><path d="M1.6 1.4 7 7l-5.4 5.6"/></svg>
+      </button>
     </div>
     <p class="legal">dvoeplay<sup>&reg;</sup></p>
   </section>
@@ -336,8 +340,10 @@ body{
   </aside>
 </div>
 
+<style>.playing-net #restart{display:none}</style>
 <div class="sr" aria-live="polite" id="live"></div>
 
+<script src="net.js"></script>
 <script>
 (function(){
 "use strict";
@@ -390,9 +396,17 @@ var scrim=document.getElementById('scrim'), sheet=document.getElementById('sheet
 var medal=document.getElementById('medal'), sTitle=document.getElementById('sheetTitle');
 var sText=document.getElementById('sheetText'), liveEl=document.getElementById('live');
 
-var mode=2;                 /* 0 легко, 1 сложно, 2 вдвоём */
+var mode=2;                 /* 0 легко, 1 сложно, 2 вдвоём, 3 по сети */
+var net={seat:1,round:0};
+var flips=0;                /* сколько карточек открыто за раунд — по этому net.js догоняет */
 var deck=[], cells=[], open=[], mem={}, taken=0;
 var turn=0, score=[0,0], lock=true, session=0, timers=[];
+/* места сервера — 1 и 2, ходы внутри игры — 0 и 1 */
+function mySide(){ return net.seat-1; }
+function notMine(){
+  if(mode===3) return turn!==mySide();
+  return mode<2 && turn===1;
+}
 var lastForfeit=-1, loserSide=0;
 var forfeitEl=document.getElementById('forfeit');
 var ftextEl=document.getElementById('ftext');
@@ -427,8 +441,11 @@ function deal(){
   stop();
   var vals=[],i;
   for(i=0;i<PAIRS;i++){ vals.push(i); vals.push(i); }
-  for(i=vals.length-1;i>0;i--){ var k=Math.floor(Math.random()*(i+1)), t=vals[i]; vals[i]=vals[k]; vals[k]=t; }
-  deck=vals; open=[]; mem={}; taken=0; score=[0,0]; turn=0; lock=false;
+  /* по сети тасуем общим генератором комнаты — иначе у игроков разные карты */
+  var rnd = (mode===3 && NET.rng) ? NET.rng : Math.random;
+  for(i=vals.length-1;i>0;i--){ var k=Math.floor(rnd()*(i+1)), t=vals[i]; vals[i]=vals[k]; vals[k]=t; }
+  deck=vals; open=[]; mem={}; taken=0; score=[0,0]; lock=false; flips=0;
+  turn = mode===3 ? (net.round%2===0?0:1) : 0;   /* очередь задаёт сервер */
 
   board.innerHTML=''; cells=[];
   vals.forEach(function(v,idx){
@@ -440,8 +457,13 @@ function deal(){
     board.appendChild(cell); cells.push(cell);
   });
 
-  nameA.textContent = mode===2 ? 'Красные' : 'Вы';
-  nameB.textContent = mode===2 ? 'Жёлтые' : 'Соперник';
+  if(mode===3){
+    nameA.textContent = net.seat===1 ? 'Вы' : 'Соперник';
+    nameB.textContent = net.seat===1 ? 'Соперник' : 'Вы';
+  }else{
+    nameA.textContent = mode===2 ? 'Красные' : 'Вы';
+    nameB.textContent = mode===2 ? 'Жёлтые' : 'Соперник';
+  }
   paint(); say(turnWord()+' ход');
 }
 
@@ -452,6 +474,7 @@ function paint(){
   sideB.classList.toggle('off',turn!==1);
 }
 function turnWord(){
+  if(mode===3) return turn===mySide()?'Ваш':'Соперника';
   if(mode===2) return turn===0?'Красных':'Жёлтых';
   return turn===0?'Ваш':'Соперника';
 }
@@ -470,12 +493,17 @@ function remember(i){
 
 function human(i){
   if(lock) return;
-  if(mode!==2 && turn===1) return;
+  if(notMine()) return;
   if(open.indexOf(i)>-1 || cells[i].classList.contains('won')) return;
   flip(i);
+  if(mode===3){
+    /* пара уже видна сразу — значит уже известно, останется ли ход за нами */
+    var keep = open.length<2 || deck[open[0]]===deck[open[1]];
+    NET.send(i, keep ? turn+1 : 2-turn);
+  }
 }
 function flip(i){
-  cells[i].classList.add('up'); open.push(i); remember(i); tap(8);
+  cells[i].classList.add('up'); open.push(i); remember(i); tap(8); flips++;
   if(open.length===2){ lock=true; later(judge,760); }
 }
 
@@ -491,8 +519,9 @@ function judge(){
     });
     score[turn]++; taken++; open=[]; lock=false; paint(); tap([12,40,18]);
     if(taken===PAIRS){ finish(); return; }
-    say(mode===2 ? 'Пара! '+turnWord()+' ход снова' : (turn===0?'Пара! Ходите снова':'Пара у соперника'), true);
-    if(mode!==2 && turn===1) later(bot,780);
+    say(mode===2 ? 'Пара! '+turnWord()+' ход снова'
+      : (turn===(mode===3?mySide():0) ? 'Пара! Ходите снова' : 'Пара у соперника'), true);
+    if(mode<2 && turn===1) later(bot,780);
   }else{
     [a,b].forEach(function(i){
       cells[i].classList.add('miss');
@@ -500,7 +529,7 @@ function judge(){
     });
     later(function(){
       open=[]; turn=1-turn; lock=false; paint(); say(turnWord()+' ход');
-      if(mode!==2 && turn===1) later(bot,620);
+      if(mode<2 && turn===1) later(bot,620);
     },420);
   }
 }
@@ -749,7 +778,10 @@ function finish(){
   lock=true;
   var w = score[0]>score[1] ? 0 : (score[1]>score[0] ? 1 : -1);
   var res=score[0]+':'+score[1];
-  DP.save('memo-duel',{win:w<0?0:w+1,mode:mode,note:'Счёт '+score[0]+' : '+score[1]});
+  if(mode===3) NET.result(w<0?0:w+1);
+  /* для истории сетевая партия — это игра вдвоём: есть ничьи, не соло */
+  DP.save('memo-duel',{win:w<0?0:w+1,mode:mode===3?2:mode,
+    note:(mode===3?'По сети · ':'')+'Счёт '+score[0]+' : '+score[1]});
   medal.className='medal '+(w===0?'a':w===1?'b':'n');
   if(w<0){
     sTitle.textContent='Ничья';
@@ -757,11 +789,15 @@ function finish(){
   }else if(mode===2){
     sTitle.textContent=(w===0?'Красные':'Жёлтые')+' выиграли';
     sText.textContent=res;
+  }else if(mode===3){
+    sTitle.textContent = w===mySide() ? 'Вы выиграли' : 'Соперник выиграл';
+    sText.textContent = res;
   }else{
     sTitle.textContent = w===0 ? 'Вы выиграли' : 'Соперник выиграл';
     sText.textContent = res+' — '+(mode===0?'лёгкий':'сложный')+' соперник';
   }
-  var showForfeit = mode===2 ? w>=0 : w===1;
+  /* фант достаётся проигравшему: вдвоём видят оба, иначе только он сам */
+  var showForfeit = mode===2 ? w>=0 : (mode===3 ? (w>=0 && w!==mySide()) : w===1);
   if(showForfeit){
     if(mode===2) loserSide = w===0 ? 2 : 1;
     ftextEl.textContent=rollForfeit();
@@ -798,16 +834,43 @@ function stopMini(){ if(miniEl.timers) miniEl.timers.forEach(clearTimeout); }
 
 /* ===== переходы ===== */
 function openGame(m){
-  mode=m; app.classList.add('playing'); stopMini(); closeSheet(); deal();
+  mode=m; app.classList.add('playing'); stopMini(); closeSheet();
+  document.body.classList.toggle('playing-net',m===3);
+  deal();
 }
 function goMenu(){
+  if(NET.on) NET.leave();
+  document.body.classList.remove('playing-net');
   stop(); closeSheet(); app.classList.remove('playing'); lock=true; stopMini(); playMini();
 }
 Array.prototype.forEach.call(document.querySelectorAll('.row'),function(r){
-  r.addEventListener('click',function(){ openGame(+r.dataset.mode); });
+  r.addEventListener('click',function(){
+    var m=+r.dataset.mode;
+    if(m===3) NET.open(); else openGame(m);
+  });
 });
 document.getElementById('restart').addEventListener('click',function(){ closeSheet(); deal(); });
-document.getElementById('again').addEventListener('click',function(){ closeSheet(); deal(); });
+document.getElementById('again').addEventListener('click',function(){
+  if(mode===3){ NET.rematch(); return; }          /* по сети раздача начинается по согласию обоих */
+  closeSheet(); deal();
+});
+
+/* ---------- игра по сети ---------- */
+/* Вся механика — в общем net.js. Здесь только то, что знает игра:
+   ход — это номер карточки, а очередь зависит от того, нашлась ли пара. */
+NET.init({
+  game:'memo-duel',
+  title:'Мемо-дуэль',
+  applied:function(){ return flips; },
+  begin:function(c){ net.seat=c.seat; net.round=c.round; openGame(3); },
+  round:function(c){ net.round=c.round; closeSheet(); deal(); },
+  move:function(v){
+    v=v|0;
+    if(open.indexOf(v)>-1 || (cells[v] && cells[v].classList.contains('won'))) return;
+    flip(v);
+  },
+  ended:goMenu
+});
 document.getElementById('toMenuBtn').addEventListener('click',goMenu);
 document.getElementById('toMenuTop').addEventListener('click',goMenu);
 scrim.addEventListener('click',closeSheet);

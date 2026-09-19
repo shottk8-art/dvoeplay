@@ -69,6 +69,7 @@ body{
 .section{display:flex;align-items:baseline;justify-content:space-between;margin:24px 2px 10px}
 .section h2{margin:0;font-size:19px;font-weight:700;letter-spacing:-.45px}
 .section span{font-size:13px;color:var(--label3);letter-spacing:-.05px}
+.netnote{margin:-4px 2px 12px;font-size:12.5px;line-height:1.35;color:var(--label3);letter-spacing:-.05px}
 
 /* ---------- герой ---------- */
 .hero{
@@ -162,13 +163,6 @@ body{
 .t .cap i{display:block;font-style:normal;font-size:11.5px;line-height:1.25;margin-top:3px;color:rgba(255,255,255,.72)}
 .t.yel .cap b{color:var(--ink)}
 .t.yel .cap i{color:rgba(28,28,30,.66)}
-.t .net{
-  position:absolute;right:10px;top:10px;z-index:3;
-  padding:4px 9px;border-radius:999px;
-  background:rgba(255,255,255,.18);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
-  font-size:10.5px;font-weight:700;letter-spacing:.2px;color:#fff;text-transform:uppercase;
-}
-.t.yel .net{background:rgba(28,28,30,.14);color:var(--ink)}
 .t .art{position:absolute;inset:0;z-index:1}
 .t .art svg{position:absolute;overflow:visible}
 
@@ -274,6 +268,7 @@ body{
   <div class="cont" id="cont" hidden></div>
 
   <div class="section"><h2>Все игры</h2><span id="count"></span></div>
+  <p class="netnote">Все восемь — вдвоём на одном телефоне, против ИИ или по сети, на двух телефонах</p>
   <div class="bento" id="bento"></div>
 
   <p class="legal">dvoeplay<sup>&reg;</sup></p>
@@ -526,7 +521,7 @@ var FX=(function(){
    ready:false рисует плитку «скоро», ready:true — обычную.
    ============================================================ */
 var GAMES=[
-  {id:'dvoeplay',        title:'4 в ряд',           desc:'Вдвоём, с ИИ или по сети',       full:'Соберите четыре фишки в ряд раньше соперника',        href:'dvoeplay.html',         tone:'dark', wide:true, art:'connect', ready:true, net:true},
+  {id:'dvoeplay',        title:'4 в ряд',           desc:'Соберите четыре фишки в ряд',       full:'Соберите четыре фишки в ряд раньше соперника',        href:'dvoeplay.html',         tone:'dark', wide:true, art:'connect', ready:true},
   {id:'magnitniy-boy',   title:'Магнитный бой',     desc:'Шарики слипаются',                  full:'Шарики-магниты слипаются, когда лежат рядом',         href:'magnitniy-boy.html',    tone:'red',  art:'magnet',  ready:true},
   {id:'memo-duel',       title:'Мемо-дуэль',        desc:'Пары по памяти',                    full:'Находите пары по памяти и ходите снова',              href:'memo-duel.html',        tone:'yel',  art:'memo',    ready:true},
   {id:'matreshka',       title:'Матрёшка',          desc:'Большая кроет меньшую',             full:'Большая фишка накрывает меньшую',                     href:'matreshka.html',        tone:'dark', art:'gobble',  ready:true},
@@ -653,7 +648,6 @@ function renderBento(){
     }
     html+='<a class="t '+g.tone+(g.wide?' wide':'')+'" href="'+esc(g.href)+'">'+
             '<span class="art art-'+g.art+'" aria-hidden="true">'+(TILE_ART[g.art]||'')+'</span>'+
-            (g.net?'<span class="net">по сети</span>':'')+
             '<span class="cap"><b>'+esc(g.title)+'</b><i>'+esc(g.desc)+'</i></span>'+
           '</a>';
   }

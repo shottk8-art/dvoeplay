@@ -207,7 +207,6 @@ body.playing #game{transform:translateX(0);pointer-events:auto}
   letter-spacing:-.05px;text-align:center;transition:opacity .4s ease;
 }
 .hint button{border:0;background:none;font:600 13px/1 -apple-system,system-ui,sans-serif;color:var(--tint);cursor:pointer;padding:0}
-.hint.warn{color:var(--red-b)}
 
 /* ---------- итоговая шторка ---------- */
 .backdrop{position:fixed;inset:0;background:rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .4s ease;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
@@ -219,9 +218,7 @@ body.playing #game{transform:translateX(0);pointer-events:auto}
   box-shadow:0 -8px 40px rgba(0,0,0,.18);text-align:center;
 }
 .open .backdrop{opacity:1;pointer-events:auto}
-.open .sheet:not(.netsheet){transform:translateY(0)}
-.open-net .netsheet{transform:translateY(0)}
-.open-net .backdrop{opacity:1;pointer-events:auto}
+.open .sheet{transform:translateY(0)}
 .grabber{width:36px;height:5px;border-radius:3px;background:var(--fill);margin:0 auto 18px}
 .medal{width:56px;height:56px;border-radius:50%;margin:0 auto 14px;box-shadow:0 6px 16px -6px rgba(0,0,0,.4)}
 .sheet h2{font-size:24px;font-weight:700;letter-spacing:-.45px;margin-bottom:5px}
@@ -247,31 +244,7 @@ body.playing #game{transform:translateX(0);pointer-events:auto}
 }
 .primary:active{transform:scale(.97);opacity:.85}
 .ghost-btn{border:0;background:none;color:var(--tint);cursor:pointer;font:400 17px/1 -apple-system,system-ui,sans-serif;padding:16px 8px 2px}
-/* ---------- шторка сетевой игры ---------- */
-.netpane[hidden]{display:none}
-.netsheet .code{
-  font:700 42px/1 -apple-system,system-ui,sans-serif;letter-spacing:10px;
-  font-variant-numeric:tabular-nums;text-indent:10px;
-  margin:0 0 18px;color:var(--label);
-}
-.netsheet .codein{
-  display:block;width:100%;margin:0 0 16px;padding:15px 0;
-  border:0;border-radius:14px;background:var(--fill);color:var(--label);
-  font:700 32px/1 -apple-system,system-ui,sans-serif;letter-spacing:10px;
-  font-variant-numeric:tabular-nums;text-align:center;text-indent:10px;
-  outline:none;-webkit-user-select:text;user-select:text;
-}
-.netsheet .codein:focus{box-shadow:0 0 0 3px color-mix(in srgb,var(--tint) 40%,transparent)}
-.netsheet .codein::placeholder{color:var(--label3);letter-spacing:10px}
-.waitline{
-  display:flex;align-items:center;justify-content:center;gap:7px;
-  margin:0 0 18px;font-size:14px;color:var(--label2);letter-spacing:-.1px;
-}
-.neterr{margin:14px 0 0;font-size:14px;line-height:1.35;color:var(--red-b);letter-spacing:-.1px;word-break:break-all}
-.neterr:empty{display:none}
-.neterr.ok{color:var(--label2)}
-.primary[disabled]{opacity:.5;cursor:default}
-.netplay #reset{display:none}
+.playing-net #reset{display:none}   /* по сети раунд начинается по согласию обоих */
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 @media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.06s !important}}
@@ -362,35 +335,9 @@ body.playing #game{transform:translateX(0);pointer-events:auto}
   <button class="ghost-btn" id="look">Посмотреть поле</button>
 </aside>
 
-<aside class="sheet netsheet" id="netsheet" role="dialog" aria-modal="true" aria-labelledby="netTitle">
-  <div class="grabber"></div>
-  <h2 id="netTitle">Игра по сети</h2>
-  <p id="netSub">Один создаёт комнату, второй входит по коду</p>
-
-  <div class="netpane" id="netPick">
-    <button class="primary" id="netCreate" type="button">Создать комнату</button>
-    <button class="ghost-btn" id="netJoinOpen" type="button">У меня есть код</button>
-  </div>
-
-  <div class="netpane" id="netWait" hidden>
-    <div class="code" id="netCode" aria-label="Код комнаты">·····</div>
-    <p class="waitline">Ждём соперника <span class="dots"><i></i><i></i><i></i></span></p>
-    <button class="primary" id="netShare" type="button">Поделиться ссылкой</button>
-    <button class="ghost-btn" id="netCancel" type="button">Отмена</button>
-  </div>
-
-  <div class="netpane" id="netEnter" hidden>
-    <input class="codein" id="netInput" type="text" inputmode="numeric" pattern="[0-9]*"
-           maxlength="5" placeholder="00000" autocomplete="off" aria-label="Код комнаты">
-    <button class="primary" id="netGo" type="button">Войти</button>
-    <button class="ghost-btn" id="netBack" type="button">Назад</button>
-  </div>
-
-  <div class="neterr" id="netErr"></div>
-</aside>
-
 <div class="sr" aria-live="polite" id="live"></div>
 
+<script src="net.js"></script>
 <script>
 (function(){
 "use strict";
@@ -558,13 +505,10 @@ function sayTurn(){
 
 /* строка под полем в сетевой партии: чей ход и на связи ли соперник */
 function netHint(){
+  /* об обрыве связи предупреждает сам net.js, здесь только чей ход */
   if(mode!==3 || over) return;
   hint.style.opacity='1';
-  var away = net.oppLeft || !net.oppOnline;
-  hint.classList.toggle('warn', !!away);
-  hint.textContent = net.oppLeft ? 'Соперник вышел из игры'
-    : !net.oppOnline ? 'Соперник не на связи…'
-    : (turn===net.seat ? 'Ваш ход' : 'Ход соперника');
+  hint.textContent = turn===net.seat ? 'Ваш ход' : 'Ход соперника';
 }
 
 function updateTurn(){
@@ -617,7 +561,7 @@ function play(c){
   if(mode===3){
     if(turn!==net.seat || freeRow(grid,c)<0) return;
     drop(c,true);
-    NET.move(c);
+    NET.send(c,turn);        /* drop уже передал очередь — её и сообщаем */
     return;
   }
   drop(c,true);
@@ -914,260 +858,20 @@ var FX=(function(){
 
 
 /* ---------- игра по сети ---------- */
-/* Партия синхронизируется списком ходов: игра детерминированная, поэтому
-   достаточно передать номер столбца — поле каждый считает у себя сам.
-   На сервере одна функция (/api/*), она хранит комнату и следит за
-   очерёдностью, так что сходить дважды или за соперника нельзя.
-   Опрос идёт по таймеру и разряжается, когда ждать нечего. */
-var net={on:false,live:false,code:'',token:'',seat:0,round:0,oppOnline:false,oppLeft:false};
+/* Вся механика — в общем net.js. Здесь только то, что знает игра:
+   как выглядит ход, чья сейчас очередь и что делать с чужим ходом. */
+var net={seat:1,round:0,oppOnline:true,oppLeft:false};
 
-var NET=(function(){
-  var timer=0, gen=0;
-  var sheetEl=document.getElementById('netsheet');
-  var subEl=document.getElementById('netSub');
-  var errEl=document.getElementById('netErr');
-  var codeEl=document.getElementById('netCode');
-  var inEl=document.getElementById('netInput');
-  var goEl=document.getElementById('netGo');
-  var makeEl=document.getElementById('netCreate');
-  var againEl=document.getElementById('again');
-  var titleEl=document.getElementById('navtitle');
-  var panes={pick:document.getElementById('netPick'),
-             wait:document.getElementById('netWait'),
-             enter:document.getElementById('netEnter')};
-  var SUB={pick:'Один создаёт комнату, второй входит по коду',
-           wait:'Назовите код сопернику или отправьте ссылку',
-           enter:'Введите пять цифр из комнаты соперника'};
-
-  function say(msg,good){
-    errEl.textContent=msg||'';
-    errEl.className='neterr'+(good?' ok':'');
-  }
-  function show(name){
-    for(var k in panes) panes[k].hidden=(k!==name);
-    subEl.textContent=SUB[name];
-    say('');
-  }
-  function open(){ codeEl.textContent='·····'; show('pick'); document.body.classList.add('open-net'); }
-  function close(){ document.body.classList.remove('open-net'); }
-
-  function api(action,body){
-    return fetch('/api/'+action,{
-      method:'POST',
-      headers:{'content-type':'application/json'},
-      body:JSON.stringify(body||{})
-    }).then(function(r){
-      return r.text().then(function(t){
-        var j=null;
-        try{ j=JSON.parse(t); }catch(e){}
-        if(!j) j={error:'Сетевая игра на этом адресе не работает'};
-        return {status:r.status,body:j};
-      });
-    },function(){ return {status:0,body:{error:'Нет связи с сервером'}}; });
-  }
-
-  /* как часто спрашивать сервер: пока ход наш, ждать особо нечего */
-  function rate(){
-    if(!net.live) return 1500;
-    if(over) return 1200;
-    return turn===net.seat ? 2400 : 900;
-  }
-  function poll(ms){
-    clearTimeout(timer);
-    if(!net.on) return;
-    timer=setTimeout(step, ms===undefined?rate():ms);
-  }
-  function step(){
-    if(!net.on) return;
-    var g=++gen;
-    api('state',{code:net.code,token:net.token,since:moves}).then(function(res){
-      if(g!==gen || !net.on) return;
-      apply(res);
-      poll();
-    });
-  }
-
-  function apply(res){
-    if(!net.on) return;
-    if(res.status===404||res.status===410){ fail('Комната закрылась'); return; }
-    if(res.status===403){ fail('Эта комната уже занята другими'); return; }
-    if(res.status!==200) return;               /* 409 и прочее — просто ждём следующего опроса */
-    var v=res.body;
-    if(v.seat) net.seat=v.seat;
-    net.oppOnline=!!v.oppOnline;
-    net.oppLeft=!!v.oppLeft;
-
-    if(!net.live){                             /* сидим в комнате и ждём второго */
-      if(v.joined){ close(); begin(); }
-      return;
-    }
-    if(v.round>net.round){                     /* оба согласились на реванш */
-      net.round=v.round;
-      resetAgain();
-      newRound();
-      return;
-    }
-    if(v.total<moves){ resync(); return; }     /* мы забежали вперёд — пересобираем поле */
-    if(v.moves && v.moves.length){
-      var quick = v.moves.length<2;            /* догоняем пачку ходов — без падения фишек */
-      for(var i=0;i<v.moves.length;i++){
-        if(over) break;
-        if((v.since+i)!==moves) continue;
-        drop(v.moves[i],quick);
-      }
-    }
-    netHint();
-    syncAgain(v);
-  }
-
-  /* поле разъехалось с сервером — собираем его заново по списку ходов */
-  function resync(){
-    api('state',{code:net.code,token:net.token,since:0}).then(function(res){
-      if(!net.on || res.status!==200) return;
-      var v=res.body, i;
-      net.round=v.round;
-      newRound();
-      for(i=0;i<v.moves.length;i++){ if(over) break; drop(v.moves[i],false); }
-      netHint();
-    });
-  }
-
-  function begin(){
-    net.live=true;
-    document.body.classList.add('netplay');
-    titleEl.textContent='4 в ряд · '+net.code;
-    startGame(3);
-    poll(500);
-  }
-
-  function create(){
-    makeEl.disabled=true; makeEl.textContent='Создаём…';
-    codeEl.textContent='·····';
-    api('create',{game:'dvoeplay'}).then(function(res){
-      makeEl.disabled=false; makeEl.textContent='Создать комнату';
-      if(res.status!==200){ say(res.body.error||'Не получилось создать комнату'); return; }
-      net.code=res.body.code; net.token=res.body.token; net.seat=1; net.round=0;
-      net.on=true; net.live=false; net.oppLeft=false; net.oppOnline=false;
-      codeEl.textContent=net.code;
-      show('wait');
-      poll(800);
-    });
-  }
-
-  function join(code){
-    code=String(code||'').replace(/\D/g,'');
-    if(code.length!==5){ say('Нужны пять цифр'); return; }
-    goEl.disabled=true; goEl.textContent='Входим…';
-    api('join',{code:code}).then(function(res){
-      goEl.disabled=false; goEl.textContent='Войти';
-      if(res.status!==200){ say(res.body.error||'Не получилось войти'); return; }
-      net.code=code; net.token=res.body.token; net.seat=2; net.round=res.body.round|0;
-      net.on=true; net.oppLeft=false; net.oppOnline=true;
-      close(); begin();
-    });
-  }
-
-  function move(c){
-    if(!net.on) return;
-    api('move',{code:net.code,token:net.token,move:c,round:net.round,since:moves}).then(function(res){
-      if(!net.on) return;
-      if(res.status===409){ resync(); return; }
-      apply(res);
-    });
-    poll(900);
-  }
-
-  function result(p){
-    if(!net.on) return;
-    api('result',{code:net.code,token:net.token,winner:p|0});
-    poll(700);
-  }
-
-  function again(){
-    if(!net.on) return;
-    againEl.disabled=true; againEl.textContent='Ждём соперника…';
-    api('again',{code:net.code,token:net.token}).then(function(res){
-      if(!net.on) return;
-      if(res.status!==200){ resetAgain(); return; }
-      apply(res);
-    });
-    poll(700);
-  }
-  function resetAgain(){ againEl.disabled=false; againEl.textContent='Играть снова'; }
-  function syncAgain(v){
-    if(mode!==3 || !over || !v.rematch) return;
-    if(v.rematch[net.seat-1]){ againEl.disabled=true; againEl.textContent='Ждём соперника…'; }
-    else if(v.rematch[2-net.seat]){ againEl.disabled=false; againEl.textContent='Соперник готов — играем'; }
-    else resetAgain();
-  }
-
-  function stop(){
-    net.on=false; net.live=false;
-    clearTimeout(timer); gen++;
-    document.body.classList.remove('netplay');
-    titleEl.textContent='4 в ряд';
-    resetAgain();
-  }
-  function leave(){
-    if(!net.on) return;
-    var c=net.code, t=net.token;
-    stop();
-    api('leave',{code:c,token:t});
-  }
-  /* «Отмена» и смахивание: из лобби выходим совсем, из партии просто прячем шторку */
-  function cancel(){
-    if(net.on && !net.live) leave();
-    close();
-  }
-  function fail(msg){
-    stop();
-    if(document.body.classList.contains('playing')) showMenu();
-    open(); say(msg);
-  }
-
-  function share(){
-    var url=location.origin+location.pathname+'?room='+net.code;
-    if(navigator.share){
-      navigator.share({title:'dvoeplay — 4 в ряд',
-        text:'Заходи в «4 в ряд», код комнаты '+net.code, url:url}).catch(function(){});
-      return;
-    }
-    if(navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(url).then(function(){ say('Ссылка скопирована',true); },
-                                             function(){ say(url,true); });
-    } else say(url,true);
-  }
-
-  makeEl.addEventListener('click',create);
-  document.getElementById('netJoinOpen').addEventListener('click',function(){
-    show('enter');
-    setTimeout(function(){ try{ inEl.focus(); }catch(e){} },340);
-  });
-  document.getElementById('netBack').addEventListener('click',function(){ show('pick'); });
-  document.getElementById('netCancel').addEventListener('click',cancel);
-  document.getElementById('netShare').addEventListener('click',share);
-  goEl.addEventListener('click',function(){ join(inEl.value); });
-  inEl.addEventListener('input',function(){
-    var v=inEl.value.replace(/\D/g,'').slice(0,5);
-    if(v!==inEl.value) inEl.value=v;
-    say('');
-    if(v.length===5) join(v);
-  });
-  inEl.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); join(inEl.value); } });
-
-  /* переход по приглашению: ?room=12345 — сразу подставляем код */
-  (function(){
-    var m=/[?&]room=(\d{5})/.exec(location.search);
-    if(!m) return;
-    try{ history.replaceState(null,'',location.pathname); }catch(e){}
-    open(); show('enter'); inEl.value=m[1];
-    setTimeout(function(){ join(m[1]); },300);
-  })();
-
-  return {open:open,close:close,cancel:cancel,move:move,result:result,
-          again:again,leave:leave,stop:stop};
-})();
-
+NET.init({
+  game:'dvoeplay',
+  title:'4 в ряд',
+  applied:function(){ return moves; },              /* столько ходов уже на поле */
+  begin:function(c){ net.seat=c.seat; net.round=c.round; startGame(3); },
+  round:function(c){ net.round=c.round; newRound(); },
+  move:function(v){ if(!over) drop(v|0,true); },    /* ход соперника */
+  peer:function(p){ net.oppOnline=p.online; net.oppLeft=p.left; },
+  ended:function(){ showMenu(); }
+});
 
 function openSheet(p){
   /* для истории сетевая партия — это игра вдвоём: есть ничьи, не соло */
@@ -1211,7 +915,7 @@ function closeSheet(){
 
 /* «Играть снова»: в сетевой партии раунд начинается, только когда согласны оба */
 function againPressed(){
-  if(mode===3){ NET.again(); return; }
+  if(mode===3){ NET.rematch(); return; }
   newRound();
 }
 
@@ -1289,6 +993,7 @@ function startGame(m){
   hinted=false;
   hint.textContent='Коснитесь столбца, чтобы бросить фишку';
   document.body.classList.add('playing');
+  document.body.classList.toggle('playing-net',m===3);
   document.getElementById('menu').setAttribute('aria-hidden','true');
   document.getElementById('game').removeAttribute('aria-hidden');
   newRound();
@@ -1296,7 +1001,7 @@ function startGame(m){
 }
 
 function showMenu(){
-  if(net.on) NET.leave();
+  if(NET.on) NET.leave();
   session++;
   document.body.classList.remove('open');
   document.body.classList.remove('playing');
@@ -1316,17 +1021,11 @@ document.getElementById('back').addEventListener('click',showMenu);
 document.getElementById('reset').addEventListener('click',function(){ starter=3-starter; newRound(); });
 document.getElementById('again').addEventListener('click',againPressed);
 document.getElementById('look').addEventListener('click',closeSheet);
-document.getElementById('backdrop').addEventListener('click',function(){
-  if(document.body.classList.contains('open-net')){ NET.cancel(); return; }
-  closeSheet();
-});
+document.getElementById('backdrop').addEventListener('click',closeSheet);
 
 var sy=null;
 sheet.addEventListener('pointerdown',function(e){ sy=e.clientY; });
 sheet.addEventListener('pointerup',function(e){ if(sy!==null && e.clientY-sy>60) closeSheet(); sy=null; });
-var ny=null, netsheetEl=document.getElementById('netsheet');
-netsheetEl.addEventListener('pointerdown',function(e){ ny=e.clientY; });
-netsheetEl.addEventListener('pointerup',function(e){ if(ny!==null && e.clientY-ny>60) NET.cancel(); ny=null; });
 
 window.addEventListener('resize',clearAim);
 buildMini();

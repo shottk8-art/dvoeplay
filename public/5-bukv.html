@@ -382,6 +382,10 @@ body{
         <span class="t"><b>Вдвоём</b><i>На одном телефоне, по очереди</i></span>
         <svg class="chev" viewBox="0 0 9 14"><path d="M1.6 1.4 7 7l-5.4 5.6"/></svg>
       </button>
+      <button class="row" data-mode="3">
+        <span class="t"><b>По сети</b><i>На двух телефонах, по коду комнаты</i></span>
+        <svg class="chev" viewBox="0 0 9 14"><path d="M1.6 1.4 7 7l-5.4 5.6"/></svg>
+      </button>
     </div>
     <p class="legal">dvoeplay<sup>&reg;</sup></p>
   </section>
@@ -448,8 +452,10 @@ body{
   <button class="ghost-btn" id="look">Посмотреть поле</button>
 </aside>
 
+<style>.playing-net #reset{display:none}</style>
 <div class="sr" aria-live="polite" id="live"></div>
 
+<script src="net.js"></script>
 <script>
 (function(){
 "use strict";
@@ -503,7 +509,7 @@ function hasRepeat(w){
 }
 var EASY=WORDS.filter(function(w){ return !hasRepeat(w); });
 var HARD=WORDS.filter(hasRepeat);
-var ROWS=[6,5,6];
+var ROWS=[6,5,6,6];      /* 0 — легко, 1 — сложно, 2 — вдвоём, 3 — по сети */
 var RANK={absent:1,present:2,correct:3};
 var ALPHABET="абвгдежзийклмнопрстуфхцчшщъыьэюя";
 
@@ -531,16 +537,23 @@ var pillEl=document.getElementById('pill');
 var mgridEl=document.getElementById('mgrid');
 
 var mode=0, secret='', lastSecret='';
+var net={seat:1,round:0};
+var plies=0;             /* сколько попыток сделано за раунд — по этому net.js догоняет */
 var rowEls=[], tileEls=[];
 var curRow=0, curGuess=[];
 var keyState={};
 var over=false, locked=false, session=0;
 var turn=1, starter=1, attemptsUsed={1:0,2:0};
+/* вдвоём — это и «на одном телефоне», и «по сети»: поле и счёт одинаковые */
+function duo(){ return mode>=2; }
+function notMine(){ return mode===3 && turn!==net.seat; }
 var wins=[0,0,0], solved=0, played=0;
 
 /* ===================== ВСПОМОГАТЕЛЬНОЕ ===================== */
 function haptic(v,kind){ FX.fire(v,kind); }
 function pickSecret(pool){
+  /* по сети слово выбирается общим генератором комнаты — оно должно совпасть */
+  if(mode===3 && NET.rng) return pool[(NET.rng()*pool.length)|0];
   var w;
   do{ w=pool[(Math.random()*pool.length)|0]; }while(w===lastSecret && pool.length>1);
   lastSecret=w;
@@ -596,7 +609,7 @@ function resetKeyboard(){ keyState={}; renderKeyboard(); }
 
 /* ===================== ВВОД ===================== */
 function onLetter(ch){
-  if(over||locked) return;
+  if(over||locked||notMine()) return;
   if(curGuess.length>=5) return;
   hideTip();
   curGuess.push(ch);
@@ -608,7 +621,7 @@ function onLetter(ch){
   haptic(4);
 }
 function onBack(){
-  if(over||locked) return;
+  if(over||locked||notMine()) return;
   if(!curGuess.length) return;
   hideTip();
   var idx=curGuess.length-1;
@@ -700,7 +713,7 @@ function describeGuess(fb){
 }
 
 function onEnter(){
-  if(over||locked) return;
+  if(over||locked||notMine()) return;
   if(curGuess.length<5){ shakeRow(); showTip('Нужно пять букв',curRow); haptic(10,'error'); return; }
   var g=curGuess.join('');
   if(!isWord(g)){
@@ -710,9 +723,25 @@ function onEnter(){
     return;
   }
   submitGuess();
+  if(mode===3) NET.send(g,3-net.seat);   /* попытки строго по очереди */
+}
+
+/* попытка соперника: дорисовываем буквы в строку и судим как свою */
+function applyGuess(w){
+  if(over) return;
+  w=String(w||'').toLowerCase();
+  if(w.length!==5 || !tileEls[curRow]) return;
+  curGuess=w.split('');
+  for(var i=0;i<5;i++){
+    var t=tileEls[curRow][i];
+    if(!t) continue;
+    t.textContent=w[i];
+    t.classList.add('filled');
+  }
+  submitGuess();
 }
 function submitGuess(){
-  locked=true;
+  locked=true; plies++;
   var s=session;
   var guessStr=curGuess.join('');
   var fb=evaluate(guessStr,secret);
@@ -737,9 +766,9 @@ function submitGuess(){
     for(i=0;i<5;i++) upgradeKey(guessStr[i],fb[i]);
     renderKeyboard();
     liveEl.textContent=describeGuess(fb);
-    var winnerSide=mode===2?turn:1;
+    var winnerSide=duo()?turn:1;
     var win=guessStr===secret;
-    if(mode===2){ attemptsUsed[turn]++; paintScoreboard(); }
+    if(duo()){ attemptsUsed[turn]++; paintScoreboard(); }
     if(win){
       for(i=0;i<5;i++){
         (function(idx){ setTimeout(function(){ if(s===session) tiles[idx].classList.add('bounce'); },idx*80); })(i);
@@ -755,11 +784,12 @@ function submitGuess(){
       setTimeout(function(){ if(s===session) finishRound(0,s); },400);
       return;
     }
-    if(mode===2){ turn=3-turn; }
+    if(duo()){ turn=3-turn; }
     locked=false;
     paintTurnRow();
     paintHint();
-    if(mode===2) liveEl.textContent+=' Ход '+(turn===1?'красных':'жёлтых')+'.';
+    if(mode===3) liveEl.textContent+=turn===net.seat?' Ваш ход.':' Ход соперника.';
+    else if(mode===2) liveEl.textContent+=' Ход '+(turn===1?'красных':'жёлтых')+'.';
   },totalDelay);
 }
 
@@ -768,7 +798,7 @@ function paintTurnRow(){
   for(var i=0;i<tileEls.length;i++){
     for(var j=0;j<tileEls[i].length;j++) tileEls[i][j].classList.remove('turn1','turn2');
   }
-  if(mode===2 && !over && tileEls[curRow]){
+  if(duo() && !over && tileEls[curRow]){
     var cls='turn'+turn;
     for(var j=0;j<tileEls[curRow].length;j++) tileEls[curRow][j].classList.add(cls);
   }
@@ -790,14 +820,15 @@ function keepRowVisible(){
   else if(r.bottom>a.bottom) arenaEl.scrollTop+=(r.bottom-a.bottom)+4;
 }
 function paintScoreboard(){
-  if(mode!==2) return;
+  if(!duo()) return;
   sliderEl.style.transform='translateX('+(turn===1?0:100)+'%)';
   document.getElementById('score1').textContent=attemptsUsed[1];
   document.getElementById('score2').textContent=attemptsUsed[2];
 }
 function paintHint(){
   if(over){ return; }
-  if(mode===2) hintEl.textContent='Ход '+(turn===1?'красных':'жёлтых')+' — введите слово';
+  if(mode===3) hintEl.textContent=turn===net.seat?'Ваш ход — введите слово':'Ход соперника';
+  else if(mode===2) hintEl.textContent='Ход '+(turn===1?'красных':'жёлтых')+' — введите слово';
   else hintEl.textContent='Попытка '+(curRow+1)+' из '+ROWS[mode];
 }
 
@@ -843,7 +874,8 @@ function finishRound(outcomeSide,s){
   if(s!==session) return;
   over=true; locked=true;
   hideTip();
-  if(mode===2){
+  if(mode===3) NET.result(outcomeSide||0);
+  if(duo()){
     if(outcomeSide) wins[outcomeSide]++;
   }else{
     played++;
@@ -1069,18 +1101,23 @@ var FX=(function(){
 
 
 function openSheet(outcomeSide){
-  DP.save('5-bukv',{win:mode===2?(outcomeSide||0):0,solved:(mode!==2&&outcomeSide)?1:0,mode:mode,note:mode===2?('Счёт '+wins[1]+' : '+wins[2]):('Решено '+solved+' из '+played)});
+  /* для истории сетевая партия — это игра вдвоём: есть ничьи, не соло */
+  DP.save('5-bukv',{win:duo()?(outcomeSide||0):0, solved:(!duo()&&outcomeSide)?1:0,
+    mode:duo()?2:mode,
+    note:duo()?((mode===3?'По сети · ':'')+'Счёт '+wins[1]+' : '+wins[2]):('Решено '+solved+' из '+played)});
   var m=document.getElementById('medal');
   var titleEl=document.getElementById('sheetTitle');
   var subEl=document.getElementById('sheetSub');
-  if(mode===2){
+  if(duo()){
     if(!outcomeSide){
       titleEl.textContent='Ничья';
       subEl.textContent='Слово: '+secret.toUpperCase()+' · счёт '+wins[1]+' : '+wins[2];
       m.className='medal tie';
       forfeitEl.classList.remove('on');
     }else{
-      titleEl.textContent='Победили '+(outcomeSide===1?'красные':'жёлтые');
+      titleEl.textContent = mode===3
+        ? (outcomeSide===net.seat?'Вы угадали':'Угадал соперник')
+        : ('Победили '+(outcomeSide===1?'красные':'жёлтые'));
       subEl.textContent='Угадали за '+(curRow+1)+' поп. · счёт '+wins[1]+' : '+wins[2];
       m.className='medal';
       m.style.setProperty('--a',outcomeSide===1?'var(--red-a)':'var(--yel-a)');
@@ -1088,8 +1125,11 @@ function openSheet(outcomeSide){
       m.style.setProperty('--a2',outcomeSide===1?'var(--yel-a)':'var(--red-a)');
       m.style.setProperty('--b2',outcomeSide===1?'var(--yel-b)':'var(--red-b)');
       loserSide=3-outcomeSide;
-      ftextEl.textContent=rollForfeit();
-      forfeitEl.classList.add('on');
+      /* фант достаётся проигравшему: вдвоём видят оба, по сети — только он сам */
+      if(mode!==3 || outcomeSide!==net.seat){
+        ftextEl.textContent=rollForfeit();
+        forfeitEl.classList.add('on');
+      } else forfeitEl.classList.remove('on');
     }
   }else{
     forfeitEl.classList.remove('on');
@@ -1116,7 +1156,10 @@ function closeSheet(showPill){
 document.getElementById('look').addEventListener('click',function(){ closeSheet(true); });
 backdrop.addEventListener('click',function(){ closeSheet(true); });
 pillEl.addEventListener('click',function(){ pillEl.classList.remove('on'); sheetEl.classList.add('on'); backdrop.classList.add('on'); });
-document.getElementById('again').addEventListener('click',function(){ closeSheet(false); setTimeout(newRound,180); });
+document.getElementById('again').addEventListener('click',function(){
+  if(mode===3){ NET.rematch(); return; }          /* по сети новое слово загадывается по согласию обоих */
+  closeSheet(false); setTimeout(newRound,180);
+});
 document.getElementById('reset').addEventListener('click',function(){ closeSheet(false); newRound(); });
 
 /* ===================== РАУНД ===================== */
@@ -1127,7 +1170,9 @@ function newRound(){
   var rows=ROWS[mode];
   curRow=0; curGuess=[];
   over=false; locked=false;
-  if(mode===2){ starter=3-starter; turn=starter; attemptsUsed={1:0,2:0}; }
+  plies=0;
+  if(mode===3){ starter = net.round%2===0?1:2; turn=starter; attemptsUsed={1:0,2:0}; }
+  else if(mode===2){ starter=3-starter; turn=starter; attemptsUsed={1:0,2:0}; }
   else turn=1;
   pillEl.classList.remove('on');
   buildGrid(rows);
@@ -1136,7 +1181,9 @@ function newRound(){
   paintTurnRow();
   paintScoreboard();
   paintHint();
-  liveEl.textContent = mode===2
+  liveEl.textContent = mode===3
+    ? ('Загадано общее слово. '+(turn===net.seat?'Ваш ход.':'Первым ходит соперник.'))
+    : mode===2
     ? ('Загадано общее слово. Первыми ходят '+(turn===1?'красные':'жёлтые')+'.')
     : 'Загадано новое слово из 5 букв.';
   hideTip();
@@ -1194,21 +1241,42 @@ document.addEventListener('keydown',function(e){
   var low=(e.key||'').toLowerCase();
   if(low.length===1 && ALPHABET.indexOf(low)>=0){ onLetter(low); }
 });
+function startGame(m){
+  mode=m;
+  wins=[0,0,0]; solved=0; played=0; starter=2;
+  gameEl.classList.toggle('duo',duo());
+  app.classList.add('playing');
+  document.body.classList.toggle('playing-net',m===3);
+  newRound();
+}
 [].slice.call(document.querySelectorAll('.row')).forEach(function(r){
   r.addEventListener('click',function(){
-    mode=+r.getAttribute('data-mode');
-    wins=[0,0,0]; solved=0; played=0; starter=2;
-    gameEl.classList.toggle('duo',mode===2);
-    app.classList.add('playing');
-    newRound();
+    var m=+r.getAttribute('data-mode');
+    if(m===3) NET.open(); else startGame(m);
   });
 });
-document.getElementById('toMenu').addEventListener('click',function(){
+function toMenu(){
+  if(NET.on) NET.leave();
   session++; over=true; locked=true;
   hideTip();
   closeSheet(false);
   app.classList.remove('playing');
+  document.body.classList.remove('playing-net');
   playMini();
+}
+document.getElementById('toMenu').addEventListener('click',toMenu);
+
+/* ---------- игра по сети ---------- */
+/* Вся механика — в общем net.js. Здесь только то, что знает игра:
+   ход — это слово целиком, а загадано оно от общего зерна комнаты. */
+NET.init({
+  game:'5-bukv',
+  title:'5 букв',
+  applied:function(){ return plies; },
+  begin:function(c){ net.seat=c.seat; net.round=c.round; startGame(3); },
+  round:function(c){ net.round=c.round; closeSheet(false); newRound(); },
+  move:function(v){ applyGuess(v); },
+  ended:toMenu
 });
 document.addEventListener('gesturestart',function(e){ e.preventDefault(); });
 var fitTimer=null;

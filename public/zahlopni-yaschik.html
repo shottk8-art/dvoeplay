@@ -476,6 +476,10 @@ body{
         <span class="t"><b>Вдвоём</b><i>На одном телефоне, по очереди</i></span>
         <svg class="chev" viewBox="0 0 9 14"><path d="M1.6 1.4 7 7l-5.4 5.6"/></svg>
       </button>
+      <button class="row" data-mode="3">
+        <span class="t"><b>По сети</b><i>На двух телефонах, по коду комнаты</i></span>
+        <svg class="chev" viewBox="0 0 9 14"><path d="M1.6 1.4 7 7l-5.4 5.6"/></svg>
+      </button>
     </div>
     <p class="legal">dvoeplay<sup>&reg;</sup></p>
   </section>
@@ -539,8 +543,10 @@ body{
   <button class="ghost-btn" id="look">Посмотреть ящик</button>
 </aside>
 
+<style>.playing-net #reset{display:none}</style>
 <div class="sr" aria-live="polite" id="live"></div>
 
+<script src="net.js"></script>
 <script>
 (function(){
 "use strict";
@@ -643,6 +649,20 @@ function probOf(mask,s){ return oneDie(mask)?(1/6):PS[s]; }
 function rollSum(){
   var lo=loSum(openMask), hi=hiSum(openMask), s, i;
   var help = missStreak>=2 ? 1-Math.pow(.5,missStreak-1) : 0;
+  if(mode===3){
+    /* по сети берём три числа по номеру броска — одинаковые у обоих */
+    var q1=netRand(0), q2=netRand(1), q3=netRand(2);
+    if(help>0 && q1<help){
+      var L=[], W=[], T=0, p2;
+      for(s=lo;s<=hi;s++) if(hasCombo(openMask,s)){ p2=probOf(openMask,s); L.push(s); W.push(p2); T+=p2; }
+      if(L.length){
+        var rr=q2*T;
+        for(i=0;i<L.length;i++){ rr-=W[i]; if(rr<=0) return L[i]; }
+        return L[L.length-1];
+      }
+    }
+    return oneDie(openMask) ? 1+((q2*6)|0) : (1+((q2*6)|0))+(1+((q3*6)|0));
+  }
   if(help>0 && Math.random()<help){
     var list=[], w=[], tot=0, pr;
     for(s=lo;s<=hi;s++) if(hasCombo(openMask,s)){ pr=probOf(openMask,s); list.push(s); w.push(pr); tot+=pr; }
@@ -658,7 +678,9 @@ function facesFor(sum){
   if(oneDie(openMask)) return [sum,0];
   var opts=[],a,b;
   for(a=1;a<=6;a++){ b=sum-a; if(b>=1&&b<=6) opts.push([a,b]); }
-  return opts[(Math.random()*opts.length)|0];
+  /* грани тоже должны совпасть — иначе у игроков разные кубики при той же сумме */
+  var r = mode===3 ? netRand(3) : Math.random();
+  return opts[(r*opts.length)|0];
 }
 
 /* Отстающий математически выбыл: даже забрав ВСЕ оставшиеся на поле
@@ -700,6 +722,10 @@ var tileEls=[];
 var mode=1, turn=1, starter=1, session=0;
 var over=false, locked=false, rolling=false;
 var openMask=ALL, sel=0, pending=0, missStreak=0;
+var net={seat:1,round:0};
+var plies=0;          /* сколько сетевых ходов принято за раунд */
+var rollNo=0;         /* номер броска в раунде — по нему считается, что выпало */
+var netQueue=[];      /* чужие ходы ждут, пока доиграет анимация */
 var scores=[0,0,0];
 var wins=[0,0,0];
 var hintMsg='';
@@ -714,9 +740,28 @@ function later(ms,fn){
 function clearTimers(){ timers.forEach(clearTimeout); timers=[]; }
 function haptic(v,kind){ FX.fire(v,kind); }
 function rnd(n){ return 1+((Math.random()*n)|0); }
-function names(){ return mode===2?['Красные','Жёлтые']:['Вы','Соперник']; }
+function names(){
+  if(mode===3) return net.seat===2?['Соперник','Вы']:['Вы','Соперник'];
+  return mode===2?['Красные','Жёлтые']:['Вы','Соперник'];
+}
+/* сейчас не наша очередь: против ИИ это второй игрок, по сети — чужое место */
+function notMine(){
+  if(mode===3) return turn!==net.seat;
+  return mode<2 && turn===2;
+}
+/* Бросок по сети: считается от зерна комнаты, номера раунда и НОМЕРА БРОСКА.
+   Это важнее, чем кажется: так число не зависит от того, сколько раз кто-то
+   дёрнул генератор, и клиенты не могут разъехаться. */
+function netRand(k){
+  var h = (NET.seed|0) ^ Math.imul(net.round+1,0x9E3779B1)
+        ^ Math.imul(rollNo+1,0x85EBCA6B) ^ Math.imul(k+1,0xC2B2AE35);
+  h ^= h>>>16; h = Math.imul(h,0x7FEB352D);
+  h ^= h>>>15; h = Math.imul(h,0x846CA68B);
+  h ^= h>>>16;
+  return (h>>>0)/4294967296;
+}
 function currentName(){ return names()[turn-1]; }
-function isAI(p){ return mode!==2 && p===2; }
+function isAI(p){ return mode<2 && p===2; }
 function jit(a){ return (Math.random()*2-1)*a; }
 function clampv(v,a,b){ return v<a?a:(v>b?b:v); }
 
@@ -877,13 +922,16 @@ function startTurn(p){
   idleDice();
   locked=isAI(p);
   paint();
-  liveEl.textContent=mode===2?('Ход: '+currentName()):(p===1?'Ваш ход':'Ход соперника');
+  liveEl.textContent = mode===3 ? (p===net.seat?'Ваш ход':'Ход соперника')
+    : mode===2 ? ('Ход: '+currentName()) : (p===1?'Ваш ход':'Ход соперника');
+  if(mode===3) locked = p!==net.seat;
   if(isAI(p)) later(620,function(){ rollDice(850); });
 }
 
 function rollDice(dur){
   if(rolling) return;
   rolling=true; sel=0;
+  rollNo++; plies++;
   paint();
   var k, el, STAGGER=140;
   var n=oneDie(openMask)?1:DICE;
@@ -942,7 +990,7 @@ function afterRoll(sum){
 }
 
 function onTile(k){
-  if(over||locked||rolling||isAI(turn)) return;
+  if(over||locked||rolling||isAI(turn)||notMine()) return;
   var bit=1<<k;
   if(!(openMask&bit)) return;
   if(!pending){ shake(k); return; }
@@ -950,12 +998,20 @@ function onTile(k){
   if(SUMOF[sel]+(k+1)>pending){ shake(k); return; }
   sel|=bit;
   haptic(6);
-  if(SUMOF[sel]===pending) applyMove(sel);
+  if(SUMOF[sel]===pending){
+    var sub=sel;
+    applyMove(sub);
+    if(mode===3) NET.send(sub,3-net.seat);   /* закрыли — ход переходит */
+  }
   else paint();
 }
 
 function applyMove(sub){
   var p=turn,k,order=0;
+  plies++;
+  /* Ход передаётся только через 760мс, и всё это время по сети успеваешь
+     бросить кубики второй раз — сервер такой ход отвергает. Запираем сразу. */
+  if(mode===3) locked=true;
   for(k=0;k<N;k++){
     if(sub&(1<<k)){
       tileEls[k].classList.add('o'+p);
@@ -1043,6 +1099,7 @@ forfeitEl.addEventListener('click',function(){
 function finishRound(why){
   var r1=scores[1], r2=scores[2];
   var winner=r1===r2?0:(r1>r2?1:2);
+  if(mode===3) NET.result(winner);
   if(winner) wins[winner]++;
   over=true; locked=true;
   hintMsg = why==='shut'    ? 'Ящик захлопнут!'
@@ -1269,7 +1326,9 @@ var FX=(function(){
 
 
 function openSheet(winner,r1,r2,why){
-  DP.save('zahlopni-yaschik',{win:winner||0,mode:mode,note:'Побед '+wins[1]+' : '+wins[2]});
+  /* для истории сетевая партия — это игра вдвоём: есть ничьи, не соло */
+  DP.save('zahlopni-yaschik',{win:winner||0,mode:mode===3?2:mode,
+    note:(mode===3?'По сети · ':'')+'Побед '+wins[1]+' : '+wins[2]});
   var n=names(), m=document.getElementById('medal');
   var pre = why==='shut' ? 'Ящик захлопнут · ' : (why==='decided' ? 'Досрочно · ' : '');
   document.getElementById('sheetSub').textContent=
@@ -1281,14 +1340,17 @@ function openSheet(winner,r1,r2,why){
   }else{
     document.getElementById('sheetTitle').textContent =
       mode===2 ? ('Победили '+n[winner-1].toLowerCase())
-               : (winner===1?'Вы выиграли':'Соперник выиграл');
+      : mode===3 ? (winner===net.seat?'Вы выиграли':'Соперник выиграл')
+      : (winner===1?'Вы выиграли':'Соперник выиграл');
     m.className='medal';
     m.style.setProperty('--a',winner===1?'var(--red-a)':'var(--yel-a)');
     m.style.setProperty('--b',winner===1?'var(--red-b)':'var(--yel-b)');
     m.style.setProperty('--a2',winner===1?'var(--yel-a)':'var(--red-a)');
     m.style.setProperty('--b2',winner===1?'var(--yel-b)':'var(--red-b)');
     loserSide=3-winner;
-    if(mode===2||winner===2){ ftextEl.textContent=rollForfeit(); forfeitEl.classList.add('on'); }
+    /* фант достаётся проигравшему: вдвоём видят оба, иначе только он сам */
+    var showForfeit = mode===2 ? true : (mode===3 ? winner!==net.seat : winner===2);
+    if(showForfeit){ ftextEl.textContent=rollForfeit(); forfeitEl.classList.add('on'); }
     else forfeitEl.classList.remove('on');
   }
   sheetEl.classList.add('on'); backdrop.classList.add('on'); pillEl.classList.remove('on');
@@ -1300,7 +1362,10 @@ function closeSheet(showPill){
 document.getElementById('look').addEventListener('click',function(){ closeSheet(true); });
 backdrop.addEventListener('click',function(){ closeSheet(true); });
 pillEl.addEventListener('click',function(){ pillEl.classList.remove('on'); sheetEl.classList.add('on'); backdrop.classList.add('on'); });
-document.getElementById('again').addEventListener('click',function(){ closeSheet(false); setTimeout(newRound,180); });
+document.getElementById('again').addEventListener('click',function(){
+  if(mode===3){ NET.rematch(); return; }          /* по сети раунд начинается по согласию обоих */
+  closeSheet(false); setTimeout(newRound,180);
+});
 document.getElementById('reset').addEventListener('click',function(){ closeSheet(false); newRound(); });
 
 /* ===================== ПАРТИЯ ===================== */
@@ -1310,7 +1375,9 @@ function newRound(){
   over=false; locked=false; rolling=false;
   openMask=ALL; sel=0; pending=0; missStreak=0; hintMsg='';
   scores=[0,0,0];
-  starter=3-starter;
+  plies=0; rollNo=0; netQueue=[];
+  if(mode===3) starter = net.round%2===0 ? 1 : 2;   /* очередь задаёт сервер */
+  else starter=3-starter;
   rackEl.classList.remove('win');
   for(var k=0;k<N;k++){
     tileEls[k].classList.remove('shut','sel','off','nope','o1','o2');
@@ -1324,7 +1391,14 @@ function newRound(){
 
 /* ===================== УПРАВЛЕНИЕ ===================== */
 function tryRoll(){
-  if(over||locked||rolling||pending||isAI(turn)) return;
+  if(over||locked||rolling||pending||isAI(turn)||notMine()) return;
+  if(mode===3){
+    /* что выпадет — уже известно, поэтому сразу видно, уйдёт ли ход */
+    rollNo++;
+    var sum=rollSum();
+    rollNo--;
+    NET.send(-1, hasCombo(openMask,sum) ? net.seat : 3-net.seat);
+  }
   rollDice(1150);
 }
 rollEl.addEventListener('click',tryRoll);
@@ -1363,21 +1437,62 @@ function playMini(){
 }
 
 /* ===================== ЗАПУСК ===================== */
+function startGame(m){
+  mode=m;
+  wins=[0,0,0]; starter=2;
+  app.classList.add('playing');
+  document.body.classList.toggle('playing-net',m===3);
+  newRound();
+}
 [].slice.call(document.querySelectorAll('.row')).forEach(function(r){
   r.addEventListener('click',function(){
-    mode=+r.getAttribute('data-mode');
-    wins=[0,0,0]; starter=2;
-    app.classList.add('playing');
-    newRound();
+    var m=+r.getAttribute('data-mode');
+    if(m===3) NET.open(); else startGame(m);
   });
 });
-document.getElementById('toMenu').addEventListener('click',function(){
+function toMenu(){
+  if(NET.on) NET.leave();
   session++; clearTimers();
   over=true; locked=true; rolling=false;
   for(var q=0;q<DICE;q++) dieEl[q].classList.remove('throw');
   closeSheet(false);
   app.classList.remove('playing');
+  document.body.classList.remove('playing-net');
   playMini();
+}
+document.getElementById('toMenu').addEventListener('click',toMenu);
+
+/* ---------- игра по сети ---------- */
+/* Ходов здесь два вида: бросок (-1) и закрытие цифр (маска).
+   Чужой ход ждёт в очереди, пока у нас доиграет анимация — иначе
+   кубики и плитки наложились бы друг на друга. */
+function netTake(v){
+  netQueue.push(v);
+  netDrain();
+}
+function netDrain(){
+  if(!netQueue.length || over) return;
+  if(rolling){ setTimeout(netDrain,180); return; }
+  var v=netQueue.shift();
+  if(v===-1) rollDice(1150);
+  else applyMove(v|0);
+  if(netQueue.length) setTimeout(netDrain,180);
+}
+NET.init({
+  game:'zahlopni-yaschik',
+  title:'Захлопни ящик',
+  applied:function(){ return plies+netQueue.length; },
+  begin:function(c){ net.seat=c.seat; net.round=c.round; startGame(3); },
+  round:function(c){ net.round=c.round; closeSheet(false); newRound(); },
+  move:netTake,
+  /* Подстраховка: ход здесь передаётся отложенным таймером, а браузер
+     придерживает таймеры в фоновой вкладке. Если сервер говорит, что
+     очередь уже другая, а мы всё ещё ждём — догоняем. */
+  turn:function(t){
+    if(mode!==3||over||rolling||pending||netQueue.length) return;
+    if(t!==turn) startTurn(t);
+  },
+  ended:toMenu
 });
 document.addEventListener('gesturestart',function(e){ e.preventDefault(); });
 var rt=null;

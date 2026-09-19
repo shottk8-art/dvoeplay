@@ -378,6 +378,10 @@ body{
         <span class="t"><b>Вдвоём</b><i>На одном телефоне, по очереди</i></span>
         <svg class="chev" viewBox="0 0 9 14"><path d="M1.6 1.4 7 7l-5.4 5.6"/></svg>
       </button>
+      <button class="row" data-mode="3">
+        <span class="t"><b>По сети</b><i>На двух телефонах, по коду комнаты</i></span>
+        <svg class="chev" viewBox="0 0 9 14"><path d="M1.6 1.4 7 7l-5.4 5.6"/></svg>
+      </button>
     </div>
     <p class="legal">dvoeplay<sup>&reg;</sup></p>
   </section>
@@ -418,6 +422,7 @@ body{
 </div>
 
 <button class="pill" id="pill">Показать итог</button>
+<style>.playing-net #reset{display:none}</style>
 <div class="backdrop" id="backdrop"></div>
 
 <aside class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
@@ -435,6 +440,7 @@ body{
 
 <div class="sr" aria-live="polite" id="live"></div>
 
+<script src="net.js"></script>
 <script>
 (function(){
 "use strict";
@@ -465,7 +471,8 @@ var scoreEl=[null,document.getElementById('score1'),document.getElementById('sco
 
 var cellEls=[];
 var S={b:[],h:{1:[0,2,2,2],2:[0,2,2,2]}};
-var mode=1, turn=1, starter=1, plies=0;
+var mode=1, turn=1, starter=1, plies=0;   /* 0 — легко, 1 — сложно, 2 — вдвоём, 3 — по сети */
+var net={seat:1,round:0};
 var over=false, locked=false, sel=null, session=0;
 var wins=[0,0,0], winCells=[];
 
@@ -620,7 +627,15 @@ function think(p){
 
 /* ===================== ОТРИСОВКА ===================== */
 function haptic(v,kind){ FX.fire(v,kind); }
-function names(){ return mode===2?['Красные','Жёлтые']:['Вы','Соперник']; }
+function names(){
+  if(mode===3) return net.seat===2?['Соперник','Вы']:['Вы','Соперник'];
+  return mode===2?['Красные','Жёлтые']:['Вы','Соперник'];
+}
+/* сейчас не наша очередь: против ИИ это второй игрок, по сети — чужое место */
+function notMine(){
+  if(mode===3) return turn!==net.seat;
+  return mode<2 && turn===2;
+}
 
 function buildBoard(){
   boardEl.innerHTML=''; cellEls=[];
@@ -650,7 +665,8 @@ function paintWin(){
 /* одна фишка каждого размера + значок с остатком */
 var SIZE_NAME={1:'Малая',2:'Средняя',3:'Большая'};
 function fillTray(p){
-  var el=trayEls[p], mine=(p===turn && !over), s, k;
+  /* «мой» лоток: по сети только своё место, против ИИ — только первый игрок */
+  var el=trayEls[p], mine=(p===turn && !over && (mode!==3 || p===net.seat)), s, k;
   el.innerHTML='';
   for(k=1;k<=3;k++){
     s=k;
@@ -665,7 +681,7 @@ function fillTray(p){
     el.appendChild(b);
   }
   el.classList.toggle('off',!mine);
-  el.classList.toggle('lock', !mine || locked || (mode!==2 && p===2));
+  el.classList.toggle('lock', !mine || locked || (mode<2 && p===2));
 }
 function renderTray(){ fillTray(1); fillTray(2); }
 
@@ -683,9 +699,11 @@ function fit(){
 function paintTurn(){
   sliderEl.style.transform='translateX('+(turn===1?0:100)+'%)';
   sliderEl.style.opacity=over?'0':'1';
-  var n=names(), thinking=(locked&&!over&&mode!==2&&turn===2);
-  document.getElementById('name1').innerHTML=n[0];
-  document.getElementById('name2').innerHTML=n[1]+(thinking?' <span class="dots"><i></i><i></i><i></i></span>':'');
+  var n=names(), DOTS=' <span class="dots"><i></i><i></i><i></i></span>';
+  /* точки ожидания: против ИИ всегда справа, по сети — у того, чей ход */
+  var wait = over ? 0 : (mode===3 ? (turn!==net.seat?turn:0) : (locked&&mode<2&&turn===2?2:0));
+  document.getElementById('name1').innerHTML=n[0]+(wait===1?DOTS:'');
+  document.getElementById('name2').innerHTML=n[1]+(wait===2?DOTS:'');
   scoreEl[1].textContent=S.h[1][1]+S.h[1][2]+S.h[1][3];
   scoreEl[2].textContent=S.h[2][1]+S.h[2][2]+S.h[2][3];
   renderTray();
@@ -698,9 +716,11 @@ function bump(p){
 }
 function hintText(){
   if(over) return '';
-  if(mode!==2 && turn===2) return 'Соперник выбирает ход';
+  if(mode===3 && turn!==net.seat) return 'Ход соперника';
+  if(mode<2 && turn===2) return 'Соперник выбирает ход';
   if(sel) return sel.f<0?'Куда поставить фишку?':'Куда переставить фишку?';
   if(!S.h[turn][1]&&!S.h[turn][2]&&!S.h[turn][3]) return 'Рука пуста — переставьте фишку на поле';
+  if(mode===3) return 'Ваш ход — выберите фишку';
   if(mode===2) return 'Ход '+(turn===1?'красных':'жёлтых')+' — выберите фишку';
   return 'Ваш ход — выберите фишку в руке или на поле';
 }
@@ -722,15 +742,21 @@ function legal(s,i){
 /* ===================== ВЗАИМОДЕЙСТВИЕ ===================== */
 function onHand(s){
   if(over||locked) return;
-  if(mode!==2 && turn===2) return;
+  if(notMine()) return;
   if(sel && sel.f<0 && sel.s===s){ sel=null; }
   else sel={f:-1,s:s};
   haptic(6); paintTargets(); paintTurn();
 }
 function onCell(i){
   if(over||locked) return;
-  if(mode!==2 && turn===2) return;
-  if(sel && legal(sel,i)){ var m=sel; sel=null; play({f:m.f,to:i,s:m.s}); return; }
+  if(notMine()) return;
+  if(sel && legal(sel,i)){
+    var m=sel; sel=null;
+    var mv={f:m.f,to:i,s:m.s};
+    play(mv);
+    if(mode===3) NET.send([mv.f,mv.to,mv.s],3-net.seat);   /* ходы строго по очереди */
+    return;
+  }
   var t=topOf(S,i);
   if(sel && sel.f===i){ sel=null; haptic(6); paintTargets(); paintTurn(); return; }
   if(t && t.p===turn){ sel={f:i,s:t.s}; haptic(6); paintTargets(); paintTurn(); return; }
@@ -777,7 +803,7 @@ function play(m){
     locked=false;
     paintTargets(); paintTurn();
     liveEl.textContent='Ходят '+names()[turn-1];
-    if(mode!==2 && turn===2) aiTurn();
+    if(mode<2 && turn===2) aiTurn();
   },m.f<0?230:330);
 }
 
@@ -849,6 +875,7 @@ forfeitEl.addEventListener('click',function(){
 
 function finish(p,s){
   over=true; locked=true;
+  if(mode===3) NET.result(p);
   if(p){ wins[p]++; winCells=winLine(S,p)||[]; }
   else winCells=[];
   paintWin();
@@ -1073,7 +1100,9 @@ var FX=(function(){
 
 
 function openSheet(p){
-  DP.save('matreshka',{win:p||0,mode:mode,note:'Счёт '+wins[1]+' : '+wins[2]});
+  /* для истории сетевая партия — это игра вдвоём: есть ничьи, не соло */
+  DP.save('matreshka',{win:p||0,mode:mode===3?2:mode,
+    note:(mode===3?'По сети · ':'')+'Счёт '+wins[1]+' : '+wins[2]});
   var n=names(), m=document.getElementById('medal');
   if(!p){
     document.getElementById('sheetTitle').textContent='Ничья';
@@ -1082,7 +1111,9 @@ function openSheet(p){
     forfeitEl.classList.remove('on');
   }else{
     document.getElementById('sheetTitle').textContent =
-      mode===2 ? 'Победили '+n[p-1].toLowerCase() : (p===1?'Вы выиграли':'Соперник выиграл');
+      mode===2 ? 'Победили '+n[p-1].toLowerCase()
+      : mode===3 ? (p===net.seat?'Вы выиграли':'Соперник выиграл')
+      : (p===1?'Вы выиграли':'Соперник выиграл');
     document.getElementById('sheetSub').textContent='Три в ряд · счёт '+wins[1]+' : '+wins[2];
     m.className='medal';
     m.style.setProperty('--a',p===1?'var(--red-a)':'var(--yel-a)');
@@ -1091,7 +1122,9 @@ function openSheet(p){
     m.style.setProperty('--b2',p===1?'var(--yel-b)':'var(--red-b)');
     /* вдвоём — фант проигравшему цвету; против соперника — только когда проиграли вы */
     loserSide=3-p;
-    if(mode===2 || p===2){ ftextEl.textContent=rollForfeit(); forfeitEl.classList.add('on'); }
+    /* фант достаётся проигравшему: вдвоём видят оба, иначе только он сам */
+    var showForfeit = mode===2 ? true : (mode===3 ? p!==net.seat : p===2);
+    if(showForfeit){ ftextEl.textContent=rollForfeit(); forfeitEl.classList.add('on'); }
     else forfeitEl.classList.remove('on');
   }
   sheetEl.classList.add('on'); backdrop.classList.add('on'); pillEl.classList.remove('on');
@@ -1103,7 +1136,10 @@ function closeSheet(showPill){
 document.getElementById('look').addEventListener('click',function(){ closeSheet(true); });
 backdrop.addEventListener('click',function(){ closeSheet(true); });
 pillEl.addEventListener('click',function(){ pillEl.classList.remove('on'); sheetEl.classList.add('on'); backdrop.classList.add('on'); });
-document.getElementById('again').addEventListener('click',function(){ closeSheet(false); setTimeout(newGame,180); });
+document.getElementById('again').addEventListener('click',function(){
+  if(mode===3){ NET.rematch(); return; }          /* по сети раунд начинается по согласию обоих */
+  closeSheet(false); setTimeout(newGame,180);
+});
 document.getElementById('reset').addEventListener('click',function(){ closeSheet(false); newGame(); });
 
 /* ===================== ПАРТИЯ ===================== */
@@ -1112,10 +1148,12 @@ function newGame(){
   S.b=[[],[],[],[],[],[],[],[],[]];
   S.h={1:[0,2,2,2],2:[0,2,2,2]};
   over=false; locked=false; sel=null; plies=0; winCells=[];
-  starter=3-starter; turn=starter;
+  if(mode===3) starter = net.round%2===0 ? 1 : 2;   /* очередь задаёт сервер */
+  else starter=3-starter;
+  turn=starter;
   pillEl.classList.remove('on');
   fit(); drawAll(); paintTargets(); paintTurn();
-  if(mode!==2 && turn===2) aiTurn();
+  if(mode<2 && turn===2) aiTurn();
 }
 
 /* ===================== ЗАСТАВКА ===================== */
@@ -1149,19 +1187,44 @@ function playMini(){
 }
 
 /* ===================== ЗАПУСК ===================== */
+function startGame(m){
+  mode=m;
+  /* по сети свои фишки должны быть под рукой: у второго игрока меняем лотки местами */
+  trayEls = (m===3 && net.seat===2)
+    ? {1:document.getElementById('trayTop'),2:document.getElementById('trayBot')}
+    : {1:document.getElementById('trayBot'),2:document.getElementById('trayTop')};
+  wins=[0,0,0]; starter=2;
+  app.classList.add('playing');
+  document.body.classList.toggle('playing-net',m===3);
+  newGame();
+}
 [].slice.call(document.querySelectorAll('.row')).forEach(function(r){
   r.addEventListener('click',function(){
-    mode=+r.getAttribute('data-mode');
-    wins=[0,0,0]; starter=2;
-    app.classList.add('playing');
-    newGame();
+    var m=+r.getAttribute('data-mode');
+    if(m===3) NET.open(); else startGame(m);
   });
 });
-document.getElementById('toMenu').addEventListener('click',function(){
+function toMenu(){
+  if(NET.on) NET.leave();
   session++; over=true; locked=true;
   closeSheet(false);
   app.classList.remove('playing');
+  document.body.classList.remove('playing-net');
   playMini();
+}
+document.getElementById('toMenu').addEventListener('click',toMenu);
+
+/* ---------- игра по сети ---------- */
+/* Вся механика — в общем net.js. Здесь только то, что знает игра:
+   как выглядит ход и что делать с чужим. Ходы строго чередуются. */
+NET.init({
+  game:'matreshka',
+  title:'Матрёшка',
+  applied:function(){ return plies; },
+  begin:function(c){ net.seat=c.seat; net.round=c.round; startGame(3); },
+  round:function(c){ net.round=c.round; closeSheet(false); newGame(); },
+  move:function(v){ if(!over) play({f:v[0],to:v[1],s:v[2]}); },
+  ended:toMenu
 });
 document.addEventListener('gesturestart',function(e){ e.preventDefault(); });
 var fitTimer=null;

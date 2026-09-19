@@ -429,6 +429,10 @@ body{
         <span class="t"><b>Вдвоём</b><i>Один загадывает за 30 секунд, второй отгадывает</i></span>
         <svg class="chev" viewBox="0 0 9 14"><path d="M1.6 1.4 7 7l-5.4 5.6"/></svg>
       </button>
+      <button class="row" data-mode="3">
+        <span class="t"><b>По сети</b><i>Один загадывает, второй отгадывает — на двух телефонах</i></span>
+        <svg class="chev" viewBox="0 0 9 14"><path d="M1.6 1.4 7 7l-5.4 5.6"/></svg>
+      </button>
     </div>
     <p class="legal">dvoeplay<sup>&reg;</sup></p>
   </section>
@@ -536,8 +540,10 @@ body{
   <button class="ghost-btn" id="look">Посмотреть поле</button>
 </aside>
 
+<style>.playing-net #reset{display:none}</style>
 <div class="sr" aria-live="polite" id="live"></div>
 
+<script src="net.js"></script>
 <script>
 (function(){
 "use strict";
@@ -622,7 +628,8 @@ var POOL=[W4.concat(W5), W6, WORDS];
 var SEQ=[
   [['rope'],['head'],['body'],['armL'],['armR'],['legL'],['legR']],
   [['head'],['armL','armR'],['body'],['legL'],['legR']],
-  [['head'],['body'],['armL'],['armR'],['legL'],['legR']]
+  [['head'],['body'],['armL'],['armR'],['legL'],['legR']],
+  [['head'],['body'],['armL'],['armR'],['legL'],['legR']]   /* по сети — как вдвоём */
 ];
 var SET_TIME=30;
 /* Последние секунды таймер краснеет и подтикивает вибрацией. */
@@ -660,6 +667,12 @@ var shown=[], used={}, keyState={};
 var mistakes=0, maxMist=6;
 var over=false, locked=false, session=0;
 var setter=2, guesser=1, active=1;
+var net={seat:1,round:0};
+var plies=0;          /* сетевых ходов за раунд: слово плюс буквы */
+/* вдвоём — это и «на одном телефоне», и «по сети»: роли и счёт одинаковые */
+function duo(){ return mode>=2; }
+function iSet(){ return mode!==3 || setter===net.seat; }      /* я загадываю */
+function iGuess(){ return mode!==3 || guesser===net.seat; }   /* я отгадываю */
 var wins=[0,0,0], solved=0, played=0;
 var timerId=null, timeLeft=SET_TIME, lastTick=99;
 var RING=2*Math.PI*36;
@@ -834,7 +847,7 @@ function paintTurnTiles(){
   var all=tiles.concat(eTiles), cls='turn'+active, i;
   for(i=0;i<all.length;i++){
     all[i].classList.remove('turn1','turn2');
-    if(mode===2 && !over && !all[i].classList.contains('correct') && !all[i].classList.contains('absent')){
+    if(duo() && !over && !all[i].classList.contains('correct') && !all[i].classList.contains('absent')){
       all[i].classList.add(cls);
     }
   }
@@ -917,6 +930,8 @@ function startTimer(){
     paintTimer();
     if(timeLeft<=0){
       clearTimer();
+      /* по сети слово выбирает только тот, кто загадывает: второй ждёт его по сети */
+      if(mode===3 && !iSet()) return;
       if(entry.length>=MIN_LEN) commitWord(entry.join(''),false);
       else commitWord(pickWord(),true);
     }
@@ -931,14 +946,18 @@ function startSetup(){
   kbdEl.classList.remove('guessing');
   setupEl.classList.toggle('p2',setter===2);
   setupEl.classList.toggle('p1',setter===1);
-  whoEl.textContent=sideName(setter,true)+' загадывают слово';
+  whoEl.textContent = mode===3
+    ? (iSet()?'Загадайте слово':'Соперник загадывает слово')
+    : (sideName(setter,true)+' загадывают слово');
   active=setter;
   word='';
   buildEntry();
   fit();
   paintScore(); paintHint();
   timeLeft=SET_TIME; lastTick=99; paintTimer();
-  liveEl.textContent=sideName(setter,true)+' загадывают слово из 4–6 букв. 30 секунд.';
+  liveEl.textContent = mode===3
+    ? (iSet()?'Загадайте слово из 4–6 букв. 30 секунд.':'Соперник загадывает слово. 30 секунд.')
+    : (sideName(setter,true)+' загадывают слово из 4–6 букв. 30 секунд.');
   var s=session;
   /* Таймер стартует после того, как экран доехал: иначе первая секунда
      уходит на анимацию перехода. */
@@ -952,7 +971,7 @@ function startSetup(){
   },560);
 }
 function onLetter(ch){
-  if(phase!=='set'||over) return;
+  if(phase!=='set'||over||!iSet()) return;
   if(entry.length>=MAX_LEN) return;
   hideTip();
   entry.push(ch);
@@ -963,7 +982,7 @@ function onLetter(ch){
   haptic(4);
 }
 function onBack(){
-  if(phase!=='set'||over) return;
+  if(phase!=='set'||over||!iSet()) return;
   if(!entry.length) return;
   hideTip();
   entry.pop();
@@ -971,7 +990,7 @@ function onBack(){
   haptic(4);
 }
 function onEnter(){
-  if(phase!=='set'||over) return;
+  if(phase!=='set'||over||!iSet()) return;
   if(entry.length<MIN_LEN){
     shakeRow(erowEl);
     showTip('Нужно хотя бы четыре буквы',erowEl,2600);
@@ -986,7 +1005,16 @@ function commitWord(w,auto){
   clearTimer();
   hideTip();
   haptic(auto?[10,50,10]:8);
+  if(mode===3){ plies++; if(iSet()) NET.send(w,guesser); }   /* дальше ходит отгадывающий */
   startGuess(auto);
+}
+/* слово пришло по сети — у отгадывающего оно не показывается на экране */
+function takeWord(w){
+  if(phase!=='set'||over) return;
+  plies++;
+  word=String(w||''); lastWord=word;
+  clearTimer(); hideTip();
+  startGuess(false);
 }
 
 /* ===================== ФАЗА ОТГАДЫВАНИЯ ===================== */
@@ -996,13 +1024,14 @@ function startGuess(auto){
   kbdEl.classList.add('guessing');
   maxMist=SEQ[mode].length;
   mistakes=0;
-  active=(mode===2?guesser:1);
+  active=(duo()?guesser:1);
   resetFigure();
   resetKeyboard();
   buildWord();
   fit();
   paintTurnTiles(); paintScore(); paintHint();
-  liveEl.textContent=(mode===2? sideName(guesser,true)+' отгадывают слово из ' : 'Загадано слово из ')
+  liveEl.textContent=(mode===3 ? (iGuess()?'Отгадывайте слово из ':'Соперник отгадывает слово из ')
+    : mode===2 ? sideName(guesser,true)+' отгадывают слово из ' : 'Загадано слово из ')
     +word.length+' '+letterForm(word.length)+'. Ошибок можно сделать '+maxMist+'.';
   var s=session;
   if(auto){
@@ -1021,7 +1050,16 @@ function startGuess(auto){
 }
 function guessLetter(ch){
   if(phase!=='guess'||over||locked) return;
+  if(mode===3 && !iGuess()) return;      /* загадавший не подсказывает себе сам */
   if(used[ch]) return;
+  if(mode===3) NET.send(ch,guesser);     /* отгадывающий ходит, пока не кончатся попытки */
+  takeLetter(ch);
+}
+/* буква — своя или пришедшая по сети */
+function takeLetter(ch){
+  if(phase!=='guess'||over) return;
+  if(used[ch]) return;
+  plies++;
   used[ch]=1;
   hideTip();
   var hit=false, i, n=0;
@@ -1076,7 +1114,7 @@ function revealRest(){
 
 /* ===================== ХОД И ПОДПИСИ ===================== */
 function paintScore(){
-  if(mode!==2) return;
+  if(!duo()) return;
   sliderEl.style.transform='translateX('+(active===1?0:100)+'%)';
   document.getElementById('score1').textContent=wins[1];
   document.getElementById('score2').textContent=wins[2];
@@ -1091,7 +1129,9 @@ function paintHint(){
   if(phase==='set'){ hintEl.textContent='Слово из 4–6 букв, потом ✓'; return; }
   var left=maxMist-mistakes;
   var tail='осталось '+left+' '+errForm(left);
-  hintEl.textContent=(mode===2? 'Отгадывают '+sideName(guesser)+' · '+tail : tail.charAt(0).toUpperCase()+tail.slice(1));
+  hintEl.textContent=(mode===3 ? (iGuess()?'Ваш ход · ':'Отгадывает соперник · ')+tail
+    : mode===2 ? 'Отгадывают '+sideName(guesser)+' · '+tail
+    : tail.charAt(0).toUpperCase()+tail.slice(1));
 }
 
 /* ===================== ИТОГ ===================== */
@@ -1135,7 +1175,8 @@ function finish(win){
   over=true; locked=true;
   clearTimer(); hideTip();
   var s=session, scorer=0;
-  if(mode===2){
+  if(mode===3) NET.result(win?guesser:setter);
+  if(duo()){
     scorer=win?guesser:setter;
     wins[scorer]++;
     loserSide=3-scorer;
@@ -1379,22 +1420,31 @@ var FX=(function(){
 
 
 function openSheet(win){
-  DP.save('viselica',{win:mode===2?(win?guesser:setter):0,solved:(mode!==2&&win)?1:0,mode:mode,note:mode===2?('Счёт '+wins[1]+' : '+wins[2]):('Решено '+solved+' из '+played)});
+  /* для истории сетевая партия — это игра вдвоём: есть ничьи, не соло */
+  DP.save('viselica',{win:duo()?(win?guesser:setter):0, solved:(!duo()&&win)?1:0,
+    mode:duo()?2:mode,
+    note:duo()?((mode===3?'По сети · ':'')+'Счёт '+wins[1]+' : '+wins[2]):('Решено '+solved+' из '+played)});
   var m=document.getElementById('medal');
   var titleEl=document.getElementById('sheetTitle');
   var subEl=document.getElementById('sheetSub');
   var W=word.toUpperCase();
-  if(mode===2){
+  if(duo()){
     var scorer=win?guesser:setter;
-    titleEl.textContent = win? sideName(guesser,true)+' отгадали слово' : 'Слово устояло';
+    titleEl.textContent = mode===3
+      ? (scorer===net.seat ? (win?'Вы отгадали слово':'Ваше слово устояло')
+                           : (win?'Соперник отгадал слово':'Слово соперника устояло'))
+      : (win? sideName(guesser,true)+' отгадали слово' : 'Слово устояло');
     subEl.textContent = W+' · счёт '+wins[1]+' : '+wins[2];
     m.className='medal';
     m.style.setProperty('--a',scorer===1?'var(--red-a)':'var(--yel-a)');
     m.style.setProperty('--b',scorer===1?'var(--red-b)':'var(--yel-b)');
     m.style.setProperty('--a2',scorer===1?'var(--yel-a)':'var(--red-a)');
     m.style.setProperty('--b2',scorer===1?'var(--yel-b)':'var(--red-b)');
-    ftextEl.textContent=rollForfeit();
-    forfeitEl.classList.add('on');
+    /* фант достаётся проигравшему: вдвоём видят оба, по сети — только он сам */
+    if(mode!==3 || scorer!==net.seat){
+      ftextEl.textContent=rollForfeit();
+      forfeitEl.classList.add('on');
+    } else forfeitEl.classList.remove('on');
   }else{
     forfeitEl.classList.remove('on');
     if(win){
@@ -1420,7 +1470,10 @@ function closeSheet(showPill){
 document.getElementById('look').addEventListener('click',function(){ closeSheet(true); });
 backdrop.addEventListener('click',function(){ closeSheet(true); });
 pillEl.addEventListener('click',function(){ pillEl.classList.remove('on'); sheetEl.classList.add('on'); backdrop.classList.add('on'); });
-document.getElementById('again').addEventListener('click',function(){ closeSheet(false); setTimeout(function(){ newRound(false); },180); });
+document.getElementById('again').addEventListener('click',function(){
+  if(mode===3){ NET.rematch(); return; }          /* по сети раунд начинается по согласию обоих */
+  closeSheet(false); setTimeout(function(){ newRound(false); },180);
+});
 /* «Начать заново» в шапке — это переигровка того же раунда, поэтому роли
    в режиме «Вдвоём» не меняются: загадывает тот же игрок. */
 document.getElementById('reset').addEventListener('click',function(){ closeSheet(false); newRound(true); });
@@ -1433,7 +1486,12 @@ function newRound(keepRoles){
   mistakes=0; entry=[];
   resetFigure(); resetKeyboard();
   pillEl.classList.remove('on');
-  if(mode===2){
+  plies=0;
+  if(mode===3){
+    setter = net.round%2===0 ? 1 : 2;   /* кто загадывает, задаёт сервер */
+    guesser=3-setter;
+    startSetup();
+  }else if(mode===2){
     if(!keepRoles){ setter=3-setter; }
     guesser=3-setter;
     startSetup();
@@ -1484,20 +1542,46 @@ document.addEventListener('keydown',function(e){
     if(phase==='set') onLetter(low); else guessLetter(low);
   }
 });
+function startGame(m){
+  mode=m;
+  wins=[0,0,0]; solved=0; played=0; setter=2;
+  gameEl.classList.toggle('duo',duo());
+  app.classList.add('playing');
+  document.body.classList.toggle('playing-net',m===3);
+  newRound(false);
+}
 [].slice.call(document.querySelectorAll('.row')).forEach(function(r){
   r.addEventListener('click',function(){
-    mode=+r.getAttribute('data-mode');
-    wins=[0,0,0]; solved=0; played=0; setter=2;
-    gameEl.classList.toggle('duo',mode===2);
-    app.classList.add('playing');
-    newRound(false);
+    var m=+r.getAttribute('data-mode');
+    if(m===3) NET.open(); else startGame(m);
   });
 });
-document.getElementById('toMenu').addEventListener('click',function(){
+function toMenu(){
+  if(NET.on) NET.leave();
   session++; over=true; locked=true;
   clearTimer(); hideTip(); closeSheet(false);
   app.classList.remove('playing');
+  document.body.classList.remove('playing-net');
   playMini();
+}
+document.getElementById('toMenu').addEventListener('click',toMenu);
+
+/* ---------- игра по сети ---------- */
+/* Игра асимметричная, поэтому и ходы разные: сначала загадывающий шлёт
+   слово, потом отгадывающий шлёт буквы. Первый ход раунда — всегда слово,
+   по этому и различаем. */
+NET.init({
+  game:'viselica',
+  title:'Быстрая виселица',
+  applied:function(){ return plies; },
+  begin:function(c){ net.seat=c.seat; net.round=c.round; startGame(3); },
+  round:function(c){ net.round=c.round; closeSheet(false); newRound(false); },
+  move:function(v){
+    v=String(v||'');
+    if(phase==='set') takeWord(v);
+    else takeLetter(v);
+  },
+  ended:toMenu
 });
 document.addEventListener('gesturestart',function(e){ e.preventDefault(); });
 var fitTimer=null;

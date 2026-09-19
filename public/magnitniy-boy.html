@@ -298,6 +298,10 @@ body{
         <span class="t"><b>Вдвоём</b><i>На одном телефоне, по очереди</i></span>
         <svg class="chev" viewBox="0 0 9 14"><path d="M1.6 1.4 7 7l-5.4 5.6"/></svg>
       </button>
+      <button class="row" data-mode="3">
+        <span class="t"><b>По сети</b><i>На двух телефонах, по коду комнаты</i></span>
+        <svg class="chev" viewBox="0 0 9 14"><path d="M1.6 1.4 7 7l-5.4 5.6"/></svg>
+      </button>
     </div>
     <p class="legal">dvoeplay<sup>&reg;</sup></p>
   </section>
@@ -350,8 +354,10 @@ body{
   </aside>
 </div>
 
+<style>.playing-net #restart{display:none}</style>
 <div class="sr" aria-live="polite" id="live"></div>
 
+<script src="net.js"></script>
 <script>
 (function(){
 "use strict";
@@ -381,7 +387,8 @@ var ftextEl=document.getElementById('ftext');
 var balls=[];                 /* {x,y,p,el} */
 var hand=[0,START_HAND,START_HAND];
 var wins=[0,0,0];
-var mode=1, turn=1, starter=1;
+var mode=1, turn=1, starter=1, plies=0;   /* 0 — легко, 1 — сложно, 2 — вдвоём, 3 — по сети */
+var net={seat:1,round:0};
 var over=false, locked=false, aiming=false, hinted=false, session=0;
 
 /* ===== сетка для ИИ ===== */
@@ -492,7 +499,15 @@ function makeBall(x,y,p,animate){
   return d;
 }
 function tap(v,kind){ FX.fire(v,kind); }
-function names(){ return mode===2?['Красные','Жёлтые']:['Вы','Соперник']; }
+function names(){
+  if(mode===3) return net.seat===2?['Соперник','Вы']:['Вы','Соперник'];
+  return mode===2?['Красные','Жёлтые']:['Вы','Соперник'];
+}
+/* сейчас не наша очередь: против ИИ это второй игрок, по сети — чужое место */
+function notMine(){
+  if(mode===3) return turn!==net.seat;
+  return mode<2 && turn===2;
+}
 function sideWord(){ return turn===1?'красных':'жёлтых'; }
 
 function paint(){
@@ -542,6 +557,7 @@ function showAim(p){
 }
 function idleHint(){
   if(over) return '';
+  if(mode===3) return turn===net.seat?'Ваш ход':'Ход соперника';
   if(!hinted) return 'Ведите пальцем — кольцо покажет поле магнита';
   if(mode===2) return 'Ход '+sideWord();
   return turn===2?'Соперник выбирает место':'Ваш ход';
@@ -557,7 +573,7 @@ function clearAim(){
 wellEl.addEventListener('pointerdown',function(e){
   if(over){ scrim.classList.add('on'); sheet.classList.add('on'); return; }
   if(locked) return;
-  if(mode!==2 && turn===2) return;
+  if(notMine()) return;
   aiming=true;
   wellEl.setPointerCapture(e.pointerId);
   showAim(fromEvent(e));
@@ -574,15 +590,20 @@ wellEl.addEventListener('pointerup',function(e){
   clearAim();
   if(!p.inside){ say('Ход отменён'); return; }
   hinted=true;
-  play(p.x,p.y,turn);
+  var me=turn;
+  if(play(p.x,p.y,turn) && mode===3) NET.send([p.x,p.y],3-me);   /* ходы строго по очереди */
 });
 wellEl.addEventListener('pointercancel',function(){ if(aiming) clearAim(); });
 
 /* ===== ход ===== */
 function play(x,y,p){
-  if(over||locked) return;
+  if(over||locked) return false;
+  return doPlay(x,y,p);
+}
+/* сам ход без проверки запоров: сюда приходят и свои ходы, и ходы соперника */
+function doPlay(x,y,p){
   var hit=pulledBy(x,y,balls), s=session;
-  locked=true;
+  locked=true; plies++;
 
   if(!hit.length){
     balls.push({x:x,y:y,p:p,el:makeBall(x,y,p,true)});
@@ -590,9 +611,9 @@ function play(x,y,p){
     tap(8);
     bump(p);
     paint();
-    if(hand[p]===0){ finish(p); return; }
+    if(hand[p]===0){ finish(p); return true; }
     setTimeout(function(){ if(s!==session) return; locked=false; nextTurn(); },260);
-    return;
+    return true;
   }
 
   /* слипание: новый магнит + всё, что он притянул */
@@ -634,6 +655,7 @@ function play(x,y,p){
       nextTurn();
     },520+clump.length*36);
   },430);
+  return true;
 }
 
 function dropClump(list){
@@ -643,7 +665,7 @@ function nextTurn(){
   if(over) return;
   turn=3-turn;
   paint();
-  if(mode!==2 && turn===2){
+  if(mode<2 && turn===2){
     locked=true;
     var s=session;
     setTimeout(function(){
@@ -696,9 +718,11 @@ forfeitEl.addEventListener('click',function(){
 
 function finish(p){
   over=true; locked=true;
+  if(mode===3) NET.result(p);
   wins[p]++;
   paint();
-  say(mode===2?('Победили '+names()[p-1].toLowerCase()):(p===1?'Вы выиграли':'Соперник выиграл'),p===1?'good':null);
+  var mineWin = mode===3 ? p===net.seat : p===1;
+  say(mode===2?('Победили '+names()[p-1].toLowerCase()):(mineWin?'Вы выиграли':'Соперник выиграл'),mineWin?'good':null);
   tap([14,60,26]);
   setTimeout(function(){ openSheet(p); },560);
 }
@@ -919,17 +943,24 @@ var FX=(function(){
 
 
 function openSheet(p){
-  DP.save('magnitniy-boy',{win:p||0,mode:mode,note:'Счёт '+wins[1]+' : '+wins[2]});
+  /* для истории сетевая партия — это игра вдвоём: есть ничьи, не соло */
+  DP.save('magnitniy-boy',{win:p||0,mode:mode===3?2:mode,
+    note:(mode===3?'По сети · ':'')+'Счёт '+wins[1]+' : '+wins[2]});
   var n=names();
   medal.className='medal '+(p===1?'a':'b');
   document.getElementById('sheetTitle').textContent =
-    mode===2 ? 'Победили '+n[p-1].toLowerCase() : (p===1?'Вы выиграли':'Соперник выиграл');
+    mode===2 ? 'Победили '+n[p-1].toLowerCase()
+    : mode===3 ? (p===net.seat?'Вы выиграли':'Соперник выиграл')
+    : (p===1?'Вы выиграли':'Соперник выиграл');
   document.getElementById('sheetText').textContent =
     mode===2 ? 'Все десять выложены, счёт '+wins[1]+':'+wins[2]
-             : 'Счёт '+wins[1]+':'+wins[2]+' — '+(mode===0?'лёгкий':'сложный')+' соперник';
+    : mode===3 ? 'Все десять выложены, счёт '+wins[1]+':'+wins[2]
+    : 'Счёт '+wins[1]+':'+wins[2]+' — '+(mode===0?'лёгкий':'сложный')+' соперник';
   /* вдвоём — фант проигравшему цвету; против соперника — только когда проиграли вы */
   loserSide=3-p;
-  if(mode===2 || p===2){ ftextEl.textContent=rollForfeit(); forfeitEl.classList.add('on'); }
+  /* фант достаётся проигравшему: вдвоём видят оба, иначе только он сам */
+  var showForfeit = mode===2 ? true : (mode===3 ? p!==net.seat : p===2);
+  if(showForfeit){ ftextEl.textContent=rollForfeit(); forfeitEl.classList.add('on'); }
   else forfeitEl.classList.remove('on');
   scrim.classList.add('on'); sheet.classList.add('on');
 }
@@ -968,11 +999,13 @@ function newGame(){
   session++;
   balls.forEach(function(b){ if(b.el.parentNode) b.el.parentNode.removeChild(b.el); });
   balls=[]; hand=[0,START_HAND,START_HAND];
-  over=false; locked=false; hinted=false;
-  starter=3-starter; turn=starter;
+  over=false; locked=false; hinted=false; plies=0;
+  if(mode===3) starter = net.round%2===0 ? 1 : 2;   /* очередь задаёт сервер */
+  else starter=3-starter;
+  turn=starter;
   clearAim();
   paint();
-  if(mode!==2&&turn===2){
+  if(mode<2&&turn===2){
     locked=true;
     var s=session;
     setTimeout(function(){
@@ -983,9 +1016,12 @@ function newGame(){
 }
 function openGame(m){
   mode=m; wins=[0,0,0]; starter=2;
+  document.body.classList.toggle('playing-net',m===3);
   app.classList.add('playing'); stopMini(); closeSheet(); fitWell(); newGame();
 }
 function goMenu(){
+  if(NET.on) NET.leave();
+  document.body.classList.remove('playing-net');
   session++; over=true; locked=true;
   closeSheet();
   app.classList.remove('playing');
@@ -993,10 +1029,29 @@ function goMenu(){
 }
 
 Array.prototype.forEach.call(document.querySelectorAll('.row'),function(r){
-  r.addEventListener('click',function(){ openGame(+r.getAttribute('data-mode')); });
+  r.addEventListener('click',function(){
+    var m=+r.getAttribute('data-mode');
+    if(m===3) NET.open(); else openGame(m);
+  });
+});
+
+/* ---------- игра по сети ---------- */
+/* Вся механика — в общем net.js. Здесь только то, что знает игра:
+   ход — это место на поле, и ходы строго чередуются. */
+NET.init({
+  game:'magnitniy-boy',
+  title:'Магнитный бой',
+  applied:function(){ return plies; },
+  begin:function(c){ net.seat=c.seat; net.round=c.round; openGame(3); },
+  round:function(c){ net.round=c.round; closeSheet(); newGame(); },
+  move:function(v){ if(!over) doPlay(v[0],v[1],turn); },
+  ended:goMenu
 });
 document.getElementById('restart').addEventListener('click',function(){ closeSheet(); newGame(); });
-document.getElementById('again').addEventListener('click',function(){ closeSheet(); setTimeout(newGame,180); });
+document.getElementById('again').addEventListener('click',function(){
+  if(mode===3){ NET.rematch(); return; }          /* по сети раунд начинается по согласию обоих */
+  closeSheet(); setTimeout(newGame,180);
+});
 document.getElementById('toMenuBtn').addEventListener('click',goMenu);
 document.getElementById('toMenuTop').addEventListener('click',goMenu);
 scrim.addEventListener('click',closeSheet);

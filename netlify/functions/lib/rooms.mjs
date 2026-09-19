@@ -3,13 +3,22 @@
    объект в памяти. Благодаря этому один и тот же код гоняется и в бою, и в тестах.
 
    Модель: комната хранит список ходов по текущему раунду. Игра у обоих
-   клиентов детерминированная, поэтому достаточно передавать сам ход,
-   а состояние поля каждый считает сам. Сервер при этом проверяет
-   очерёдность — клиент не может сходить дважды или за соперника. */
+   клиентов детерминированная, поэтому достаточно передать сам ход,
+   а состояние поля каждый считает сам.
+
+   Очерёдность сервер хранит ЯВНО, а не выводит из числа ходов: в «Точках
+   и квадратах», «Мемо-дуэли» и «Захлопни ящик» ход часто остаётся за тем
+   же игроком, так что простое чередование там неверно. Ходящий сам
+   сообщает, к кому переходит очередь; сервер следит лишь за тем, чтобы
+   нельзя было сходить вне очереди.
+
+   Ход — маленькое значение JSON: число (клетка), строка (слово),
+   массив (размер фишки и клетка). Размер ограничен. */
 
 const LIFETIME = 3 * 60 * 60 * 1000;   /* комната живёт 3 часа с последнего касания */
 const AWOL     = 25 * 1000;            /* столько тишины — считаем соперника отключившимся */
-const MAX_MOVES = 500;
+const MAX_MOVES = 800;
+const MAX_MOVE_CHARS = 64;             /* столько символов хватает на слово и на пару чисел */
 
 const now = () => Date.now();
 const rnd = (n) => Math.floor(Math.random() * n);
@@ -18,26 +27,37 @@ const newToken = () => Math.random().toString(36).slice(2) + Math.random().toStr
 
 function key(code){ return 'room-' + code; }
 
+/* кто начинает раунд: первый раунд за первым игроком, дальше по очереди */
+export function starterOf(round){ return round % 2 === 0 ? 1 : 2; }
+
+/* ход допустим, если он компактный и без вложенных объектов */
+export function okMove(v){
+  if (v === null || v === undefined) return false;
+  const t = typeof v;
+  if (t === 'number') return Number.isFinite(v);
+  if (t === 'string') return v.length <= MAX_MOVE_CHARS;
+  if (Array.isArray(v)){
+    if (v.length > 8) return false;
+    return v.every(x => (typeof x === 'number' && Number.isFinite(x)) ||
+                        (typeof x === 'string' && x.length <= MAX_MOVE_CHARS));
+  }
+  return false;
+}
+
 function blank(game){
   return {
     game,
-    seed: rnd(1e9),          /* общий источник случайности для игр, где она нужна */
+    seed: rnd(1e9),          /* общая случайность: колода, загаданное слово, броски */
     created: now(),
     touched: now(),
     round: 0,
+    turn: starterOf(0),
     seats: [null, null],     /* токены игроков */
     seen: [0, 0],            /* когда каждый последний раз выходил на связь */
     moves: [],
     rematch: [false, false],
     result: null             /* {winner, at} — заполняет тот, у кого партия закончилась */
   };
-}
-
-/* кто ходит первым в раунде: как в самой игре — первый раунд за первым игроком */
-export function starterOf(round){ return round % 2 === 0 ? 1 : 2; }
-export function turnOf(round, moveCount){
-  const s = starterOf(round);
-  return moveCount % 2 === 0 ? s : 3 - s;
 }
 
 function seatOf(room, token){
@@ -62,7 +82,7 @@ function view(room, seat, since, at){
     total: room.moves.length,
     since: Math.max(0, since | 0),
     moves: room.moves.slice(Math.max(0, since | 0)),
-    turn: turnOf(room.round, room.moves.length),
+    turn: room.turn,
     rematch: room.rematch.slice(),
     result: room.result
   };
@@ -87,7 +107,7 @@ export async function handle(store, action, data){
       room.seats[0] = token;
       room.seen[0] = at;
       await store.set(key(code), room);
-      return ok({ code, token, seat: 1, seed: room.seed });
+      return ok({ code, token, seat: 1, seed: room.seed, round: 0, turn: room.turn });
     }
     return bad(503, 'Не удалось подобрать свободный код, попробуйте ещё раз');
   }
@@ -101,16 +121,21 @@ export async function handle(store, action, data){
     await store.del(key(code));
     return bad(410, 'Комната устарела');
   }
+  /* комнаты, созданные до обновления, могли не хранить очередь явно */
+  if (typeof room.turn !== 'number') room.turn = starterOf(room.round);
 
   if (action === 'join'){
     if (room.seats[0] === false) return bad(410, 'Хозяин комнаты вышел');
     if (room.seats[1] && room.seats[1] !== false && alive(room, 2, at)) return bad(409, 'В комнате уже двое');
+    if (data.game && room.game && String(data.game) !== room.game){
+      return bad(409, 'В этой комнате играют в другую игру');
+    }
     const token = newToken();
     room.seats[1] = token;
     room.seen[1] = at;
     room.touched = at;
     await store.set(key(code), room);
-    return ok({ code, token, seat: 2, game: room.game, seed: room.seed, round: room.round });
+    return ok({ code, token, seat: 2, game: room.game, seed: room.seed, round: room.round, turn: room.turn });
   }
 
   const seat = seatOf(room, data.token);
@@ -124,12 +149,13 @@ export async function handle(store, action, data){
   }
 
   if (action === 'move'){
-    const move = data.move | 0;
-    if (!(move >= 0 && move < 64)) return bad(400, 'Недопустимый ход');
+    if (!okMove(data.move)) return bad(400, 'Недопустимый ход');
     if (room.moves.length >= MAX_MOVES) return bad(409, 'Слишком много ходов');
-    if (turnOf(room.round, room.moves.length) !== seat) return bad(409, 'Сейчас не ваш ход');
+    if (room.turn !== seat) return bad(409, 'Сейчас не ваш ход');
     if ((data.round | 0) !== room.round) return bad(409, 'Раунд уже сменился');
-    room.moves.push(move);
+    const next = data.next | 0;
+    room.moves.push(data.move);
+    room.turn = (next === 1 || next === 2) ? next : (3 - seat);
     room.touched = at;
     await store.set(key(code), room);
     return ok(view(room, seat, data.since, at));
@@ -147,6 +173,7 @@ export async function handle(store, action, data){
     if (room.rematch[0] && room.rematch[1]){
       room.round += 1;
       room.moves = [];
+      room.turn = starterOf(room.round);
       room.rematch = [false, false];
       room.result = null;
     }
