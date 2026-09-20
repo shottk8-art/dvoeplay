@@ -27,6 +27,21 @@ var NET = (function(){
   var opt = null;                 /* настройки от игры */
   var timer = 0, gen = 0;
   var over = false;               /* партия доиграна, ждём реванша */
+  /* Очередь своих ходов. Ход лежит здесь, пока сервер его не подтвердил:
+     один обрыв связи — и без очереди ход остался бы только на своём
+     телефоне, а партия разъехалась бы навсегда. */
+  var outbox = [], sending = false;
+  var midTag = Math.random().toString(36).slice(2, 8), midNo = 0;
+  var pollBad = 0, sendBad = 0, lost = false;
+  var mark = '', markAt = 0;      /* по чём видно, что на сервере что-то поменялось */
+  /* Пришедшие ходы соперника. Одним ответом их может прийти сразу
+     несколько — там, где ход остаётся за тем же игроком, или когда связь
+     на секунду пропала. Вываливать их в игру разом нельзя: у неё на каждый
+     ход своя анимация и свои паузы, и следующий ход, пришедший посреди
+     предыдущего, ломает поле. Поэтому ходы ждут здесь и уходят в игру по
+     одному, как только она готова их принять. */
+  var queue = [], feeder = 0;
+  var focusAt = 0;               /* отложенный подъём клавиатуры в поле кода */
   var againLabel = '';            /* родная подпись кнопки «играть снова» */
   var el = {};
 
@@ -179,7 +194,14 @@ var NET = (function(){
     el.make.addEventListener('click', create);
     id('npHas').addEventListener('click', function(){
       pane('enter');
-      setTimeout(function(){ try{ el.input.focus(); }catch(e){} }, 340);
+      /* Клавиатуру поднимаем, когда шторка доехала. Если к этому времени код
+         уже введён целиком (вставили из буфера, подставила автоподсказка),
+         поднимать её незачем — она только закроет собой экран. */
+      clearTimeout(focusAt);
+      focusAt = setTimeout(function(){
+        if (el.input.value.replace(/\D/g, '').length === 5) return;
+        try{ el.input.focus(); }catch(e){}
+      }, 340);
     });
     id('npBackBtn').addEventListener('click', function(){ pane('pick'); });
     id('npCancel').addEventListener('click', cancel);
@@ -192,6 +214,7 @@ var NET = (function(){
       if (v.length === 5){
         /* код введён целиком — клавиатура телефона больше не нужна и
            иначе остаётся висеть поверх игры */
+        clearTimeout(focusAt);
         try{ el.input.blur(); }catch(e){}
         join(v);
       }
@@ -273,12 +296,45 @@ var NET = (function(){
   function applied(){
     try { return opt && opt.applied ? (opt.applied() | 0) : 0; } catch(e){ return 0; }
   }
+  /* сколько ходов раунда у нас уже есть: применённые плюс ждущие своей минуты */
+  function have(){ return applied() + queue.length; }
+  /* игра сама говорит, можно ли ей сейчас отдать ход */
+  function busy(){
+    try { return !!(opt && opt.busy && opt.busy()); } catch(e){ return false; }
+  }
+  function drain(){
+    clearTimeout(feeder);
+    if (!queue.length || !api_.on) return;
+    if (busy()){ feeder = setTimeout(drain, 150); return; }
+    var it = queue.shift();
+    fire('move', it.v, it.quick);
+    if (queue.length) feeder = setTimeout(drain, 40);
+  }
 
-  /* опрос разряжаем, когда ждать нечего: это единственный расходуемый ресурс */
+  /* Опрос разряжаем, когда ждать нечего: каждый запрос — обращение к
+     серверной функции, и лишние запросы не только тратят лимит, но и
+     сталкиваются с ходами. Быстро опрашивает только тот, кто ждёт чужой ход. */
   function rate(){
-    if (!api_.live) return 1500;
-    if (over) return 1200;
-    return 1000;
+    /* Чем дольше на сервере ничего не меняется, тем реже туда стучимся:
+       комнату могли просто бросить открытой, и незачем полчаса её опрашивать. */
+    var still = markAt ? Date.now() - markAt : 0;
+    if (!api_.live) return still > 60000 ? 3000 : 1500;       /* лобби */
+    if (over) return still > 30000 ? 2500 : 1200;             /* ждём реванша */
+    if (hidden()) return 4000;                                /* на экран не смотрят */
+    if (api_.turn && api_.turn === api_.seat){                /* ход наш, ждать нечего */
+      return still > 60000 ? 4000 : 2600;
+    }
+    return still > 120000 ? 2000 : 900;                       /* ждём чужой ход */
+  }
+  function hidden(){
+    try { return !!document.hidden; } catch(e){ return false; }
+  }
+  /* видно ли сервер: пилюля внизу должна объяснять, почему игра встала */
+  function link(){
+    var bad = pollBad > 2 || sendBad > 2;
+    if (bad === lost) return;
+    lost = bad;
+    warn();
   }
   function poll(ms){
     clearTimeout(timer);
@@ -291,8 +347,14 @@ var NET = (function(){
   function step(){
     if (!api_.on) return;
     var g = ++gen;
-    call('state', { code:api_.code, token:api_.token, since:applied() }).then(function(res){
+    call('state', { code:api_.code, token:api_.token, since:have() }).then(function(res){
       if (g !== gen || !api_.on) return;
+      if (res.status === 0 || res.status >= 500){   /* сервер не ответил — подождём и спросим снова */
+        pollBad++; link();
+        poll(Math.min(900 + pollBad * 500, 3000));
+        return;
+      }
+      pollBad = 0; link();
       apply(res);
       poll();
     });
@@ -304,6 +366,9 @@ var NET = (function(){
     if (res.status === 403){ fail('Вас нет в этой комнате'); return; }
     if (res.status !== 200) return;          /* 409 и прочее — ждём следующего опроса */
     var v = res.body;
+    var sign = [v.total, v.round, v.turn, v.joined ? 1 : 0, v.oppOnline ? 1 : 0,
+                v.oppLeft ? 1 : 0, (v.rematch || []).join('')].join('|');
+    if (sign !== mark){ mark = sign; markAt = Date.now(); }
     if (v.seat) api_.seat = v.seat;
     api_.oppOnline = !!v.oppOnline;
     api_.oppLeft = !!v.oppLeft;
@@ -319,23 +384,35 @@ var NET = (function(){
       return;
     }
     warn();
-    if (api_.live && api_.turn && api_.turn !== wasTurn) fire('turn', api_.turn);
+    /* Очередь по мнению сервера отдаём игре КАЖДЫЙ раз, а не только когда
+       она изменилась. Игра сама решит, слушать сейчас или нет: если
+       поправку прислать однажды и она придёт в неподходящий миг (идёт
+       анимация, разбирается очередь ходов), её просто отбросят — и игра
+       останется с неверной очередью навсегда. */
+    if (api_.live && api_.turn) fire('turn', api_.turn, api_.turn !== wasTurn);
 
     if (v.round > api_.round){                /* оба согласились на реванш */
+      outbox.length = 0;                      /* ходы прошлого раунда уже ни к чему */
       api_.round = v.round;
       over = false;
+      queue.length = 0;                       /* ходы прошлого раунда уже не нужны */
+      clearTimeout(feeder);
       seedRound();
       resetAgain();
       fire('round', { seat:api_.seat, round:api_.round, seed:api_.seed, rng:api_.rng });
       return;
     }
-    if (v.total < applied()){ resync(); return; }   /* мы забежали вперёд */
+    /* Мы забежали вперёд сервера. Если в очереди лежат неотправленные ходы,
+       то ровно на них он и отстаёт — это не рассинхрон, а ожидание связи:
+       пересобирать раунд нельзя, иначе свой же ход мигнёт и пропадёт. */
+    if (v.total < have() - outbox.length){ resync(); return; }
     if (v.moves && v.moves.length){
       var quick = v.moves.length < 2;         /* догоняем пачку — без анимации */
       for (var i = 0; i < v.moves.length; i++){
-        if ((v.since + i) !== applied()) continue;
-        fire('move', v.moves[i], quick);
+        if ((v.since + i) !== have()) continue;
+        queue.push({ v: v.moves[i], quick: quick });
       }
+      drain();
     }
     syncAgain(v);
   }
@@ -356,12 +433,14 @@ var NET = (function(){
       try{ console.warn('[net] пересборка ПОДТВЕРЖДЕНА: сервер '+v.total+', раунд '+v.round); }catch(e){}
       api_.round = v.round;
       over = false;
+      queue.length = 0;
+      clearTimeout(feeder);
       seedRound();
       fire('round', { seat:api_.seat, round:api_.round, seed:api_.seed, rng:api_.rng });
-      for (i = 0; i < v.moves.length; i++){
-        if (applied() !== i) break;
-        fire('move', v.moves[i], false);
-      }
+      /* поле собираем тем же путём, что и обычные ходы: по одному, дожидаясь
+         игру — иначе двадцать ходов подряд свалятся в одну анимацию */
+      for (i = 0; i < v.moves.length; i++) queue.push({ v: v.moves[i], quick: true });
+      drain();
       warn();
     });
   }
@@ -415,17 +494,51 @@ var NET = (function(){
     });
   }
 
-  /* ход этого игрока: next — кому переходит очередь (1 или 2) */
+  /* Ход этого игрока: next — кому переходит очередь (1 или 2).
+     Ход не отправляется «в один конец»: он встаёт в очередь и уходит
+     снова и снова, пока сервер не подтвердит. У каждого хода своя метка,
+     поэтому повтор не применится дважды. */
   function send(move, next){
     if (!api_.on) return;
+    outbox.push({ move: move, next: next | 0, round: api_.round,
+                  mid: midTag + ':' + (++midNo), tries: 0 });
+    flush();
+  }
+
+  function flush(){
+    if (sending || !outbox.length || !api_.on) return;
+    var it = outbox[0];
+    sending = true;
     var g = ++gen;
-    call('move', { code:api_.code, token:api_.token, move:move,
-                   round:api_.round, next:next | 0, since:applied() }).then(function(res){
-      if (g !== gen || !api_.on) return;
-      if (res.status === 409){ resync(); return; }
-      apply(res);
+    call('move', { code:api_.code, token:api_.token, move:it.move, mid:it.mid,
+                   round:it.round, next:it.next, since:have() }).then(function(res){
+      sending = false;
+      if (!api_.on) return;
+      if (res.status === 200){
+        outbox.shift();
+        sendBad = 0; link();
+        if (g === gen) apply(res);
+        if (outbox.length) flush(); else poll(900);
+        return;
+      }
+      if (res.status === 404 || res.status === 403 || res.status === 410){
+        outbox.length = 0;
+        apply(res);
+        return;
+      }
+      if (res.status === 409 || res.status === 400){
+        /* Сервер ход не принял: сменился раунд или очередь не наша. Наша
+           картина устарела, а ходы, что стоят следом, построены на ней же —
+           значит негодны все. Собираем поле заново по серверу. */
+        outbox.length = 0;
+        sendBad = 0; link();
+        resync();
+        return;
+      }
+      /* связь или сервер подвели: ход цел, пробуем ещё раз */
+      it.tries++; sendBad++; link();
+      setTimeout(flush, Math.min(400 * it.tries, 2500));
     });
-    poll(900);
   }
 
   function result(winner){
@@ -473,7 +586,8 @@ var NET = (function(){
   /* ---------- связь с соперником ---------- */
   function warn(){
     if (!el.warn) return;
-    var msg = api_.oppLeft ? 'Соперник вышел из игры'
+    var msg = lost ? 'Нет связи с сервером'
+            : api_.oppLeft ? 'Соперник вышел из игры'
             : !api_.oppOnline ? 'Соперник не на связи' : '';
     if (msg){ el.warn.textContent = msg; el.warn.classList.add('np-show'); }
     else el.warn.classList.remove('np-show');
@@ -483,7 +597,10 @@ var NET = (function(){
   /* ---------- выход ---------- */
   function stop(){
     api_.on = false; api_.live = false;
-    clearTimeout(timer); gen++;
+    clearTimeout(timer); clearTimeout(feeder); gen++;
+    queue.length = 0;
+    outbox.length = 0; sending = false;
+    pollBad = 0; sendBad = 0; lost = false;
     over = false;
     document.body.classList.remove('np-play');
     if (el.warn) el.warn.classList.remove('np-show');
@@ -527,6 +644,13 @@ var NET = (function(){
   function init(o){
     opt = o || {};
     build();
+    /* вернулись к игре после блокировки экрана — спрашиваем сервер сразу,
+       не дожидаясь разряженного «фонового» опроса */
+    try {
+      document.addEventListener('visibilitychange', function(){
+        if (api_.on && !hidden()){ flush(); poll(200); }
+      });
+    } catch(e){}
     /* переход по приглашению: ?room=12345 — код подставляем сами */
     var m = /[?&]room=(\d{5})/.exec(location.search);
     if (!m) return;

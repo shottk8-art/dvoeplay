@@ -900,6 +900,9 @@ NET.init({
   game:'memo-duel',
   title:'Мемо-дуэль',
   applied:function(){ return flips; },
+  /* Пока две карточки открыты и мы ждём, совпали они или нет, принимать
+     следующий ход нельзя: третья карточка легла бы поверх пары. */
+  busy:function(){ return lock || open.length>=2; },
   begin:function(c){ net.seat=c.seat; net.round=c.round; openGame(3); },
   round:function(c){ net.round=c.round; closeSheet(); deal(); },
   move:function(v){

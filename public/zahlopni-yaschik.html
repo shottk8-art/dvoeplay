@@ -729,6 +729,12 @@ var netQueue=[];      /* чужие ходы ждут, пока доиграет
 var scores=[0,0,0];
 var wins=[0,0,0];
 var hintMsg='';
+/* Ход передаётся не сразу, а через паузу: доиграть анимацию плиток и дать
+   увидеть промах. Всё это время очерёдность ещё старая, и трогать её нельзя —
+   ни чужому ходу из очереди, ни подсказке сервера. Иначе отложенный таймер
+   позже перезапишет очередь старым значением, и оба игрока станут ждать
+   друг друга: игра встанет намертво. */
+var handing=false;
 var timers=[];
 
 function later(ms,fn){
@@ -940,7 +946,7 @@ function paintTiles(){
 
 /* ===================== ХОД ===================== */
 function startTurn(p){
-  turn=p; sel=0; pending=0; hintMsg='';
+  turn=p; sel=0; pending=0; hintMsg=''; handing=false;
   rackEl.className='rack p'+p;
   idleDice();
   locked=isAI(p);
@@ -1004,6 +1010,7 @@ function afterRoll(sum){
     paint();
     liveEl.textContent='Промах: '+sum+' нечем закрыть';
     haptic(16,'error');
+    handing=true;
     later(1150,function(){ startTurn(3-p); });
     return;
   }
@@ -1059,6 +1066,7 @@ function applyMove(sub){
   }
   if(decided()){ later(820,function(){ finishRound('decided'); }); return; }
   if(boardDead(openMask)){ later(760,function(){ finishRound('dead'); }); return; }
+  handing=true;
   later(760,function(){ startTurn(3-p); });
 }
 
@@ -1421,7 +1429,7 @@ function newRound(){
   over=false; locked=false; rolling=false;
   openMask=ALL; sel=0; pending=0; missStreak=0; hintMsg='';
   scores=[0,0,0];
-  plies=0; rollNo=0; netQueue=[];
+  plies=0; rollNo=0; netQueue=[]; handing=false;
   if(mode===3) starter = net.round%2===0 ? 1 : 2;   /* очередь задаёт сервер */
   else starter=3-starter;
   rackEl.classList.remove('win');
@@ -1520,7 +1528,9 @@ function netTake(v){
 }
 function netDrain(){
   if(!netQueue.length || over) return;
-  if(rolling){ setTimeout(netDrain,180); return; }
+  /* ждём и анимацию, и передачу хода: следующий ход чужой только после того,
+     как очередь по-настоящему перешла */
+  if(rolling || handing){ setTimeout(netDrain,180); return; }
   var v=netQueue.shift();
   if(v===-1) rollDice(1150);
   else applyMove(v|0);
@@ -1530,6 +1540,8 @@ NET.init({
   game:'zahlopni-yaschik',
   title:'Захлопни ящик',
   applied:function(){ return plies+netQueue.length; },
+  /* кубики ещё катятся или ход ещё передаётся — чужой ход подождёт */
+  busy:function(){ return rolling || handing || netQueue.length>0; },
   begin:function(c){ net.seat=c.seat; net.round=c.round; startGame(3); },
   round:function(c){ net.round=c.round; closeSheet(false); newRound(); },
   move:netTake,
@@ -1537,7 +1549,7 @@ NET.init({
      придерживает таймеры в фоновой вкладке. Если сервер говорит, что
      очередь уже другая, а мы всё ещё ждём — догоняем. */
   turn:function(t){
-    if(mode!==3||over||rolling||pending||netQueue.length) return;
+    if(mode!==3||over||rolling||pending||handing||netQueue.length) return;
     if(t!==turn) startTurn(t);
   },
   ended:toMenu
