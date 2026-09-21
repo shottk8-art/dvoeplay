@@ -5,11 +5,24 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1C1C1E" media="(prefers-color-scheme: dark)">
+<script>
+/* Тема — до первой отрисовки, иначе при запуске мигнёт чужим фоном.
+   Выбор игрока лежит в общей памяти приложения (ключ dvoeplay:v1);
+   пусто — значит берём тему из настроек телефона, как раньше. */
+(function(){try{
+  var d=JSON.parse(localStorage.getItem('dvoeplay:v1')||'{}'), t=d&&d.theme;
+  if(t!=='light'&&t!=='dark') return;
+  document.documentElement.setAttribute('data-theme',t);
+  var c=t==='dark'?'#1C1C1E':'#F2F2F7', m=document.querySelectorAll('meta[name="theme-color"]'), i;
+  for(i=0;i<m.length;i++) m[i].setAttribute('content',c);
+}catch(e){}})();
+</script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Мемо-дуэль — dvoeplay</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231C1C1E'/%3E%3Crect x='13' y='16' width='17' height='32' rx='5' fill='%23E7362B'/%3E%3Crect x='34' y='16' width='17' height='32' rx='5' fill='%23F5BE0A'/%3E%3C/svg%3E">
 <style>
 :root{
+  color-scheme:light;      /* поля ввода и полосы прокрутки тоже светлые */
   --bg:#F2F2F7;
   --surface:#FFFFFF;
   --well:#E8E8ED;
@@ -28,8 +41,11 @@
   --card-shadow:0 1px 2px rgba(0,0,0,.05),0 8px 24px -10px rgba(0,0,0,.14);
   --tile-shadow:0 1px 2px rgba(0,0,0,.10),0 2px 6px -3px rgba(0,0,0,.14);
 }
+/* Тёмная тема. По умолчанию берётся из настроек телефона, но выбор
+   в приложении важнее: атрибут data-theme ставится ещё до отрисовки. */
 @media (prefers-color-scheme: dark){
-  :root{
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
     --bg:#1C1C1E;
     --surface:#2C2C2E;
     --well:#3A3A3C;
@@ -46,6 +62,23 @@
     --tile-shadow:0 1px 2px rgba(0,0,0,.35);
   }
 }
+:root[data-theme="dark"]{
+    color-scheme:dark;
+    --bg:#1C1C1E;
+    --surface:#2C2C2E;
+    --well:#3A3A3C;
+    --fill:rgba(118,118,128,.24);
+    --slider:#4C4C50;
+    --sep:#48484C;
+    --label:#FFFFFF;
+    --label2:#98989E;
+    --label3:#76767C;
+    --tint:#0A84FF;
+    --ok:#30D158;
+    --thumb-shadow:0 3px 8px rgba(0,0,0,.5);
+    --card-shadow:0 1px 2px rgba(0,0,0,.4);
+    --tile-shadow:0 1px 2px rgba(0,0,0,.35);
+  }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden}
 body{
@@ -131,19 +164,20 @@ body{
 .legal sup{font-size:.7em;vertical-align:.5em;font-weight:500;letter-spacing:0;margin-left:.05em}
 
 /* ---------- навигация ---------- */
-.nav{display:flex;align-items:center;gap:10px;height:34px;flex:none}
+.nav{display:flex;align-items:center;gap:10px;height:44px;flex:none}
 .back{
   display:flex;align-items:center;gap:3px;border:0;background:none;padding:0;cursor:pointer;
-  color:var(--tint);font:inherit;font-size:16px;letter-spacing:-.2px;
+  color:var(--tint);font:inherit;font-size:17px;letter-spacing:-.3px;
 }
-.back svg{width:9px;height:15px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
-.nav .ttl{flex:1;text-align:center;font-size:15px;font-weight:600;letter-spacing:-.3px}
+.back svg{width:11px;height:18px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.nav .ttl{flex:1;text-align:center;font-size:17px;font-weight:600;letter-spacing:-.35px}
 .icon{
   width:32px;height:32px;flex:none;border:0;border-radius:50%;background:var(--fill);
-  display:grid;place-items:center;cursor:pointer;transition:transform .16s var(--spring),background .12s;
+  color:var(--tint);
+  display:grid;place-items:center;cursor:pointer;transition:transform .18s var(--spring),opacity .18s ease;
 }
-.icon:active{transform:scale(.9);background:var(--well)}
-.icon svg{width:16px;height:16px;fill:none;stroke:var(--label);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.icon:active{transform:scale(.9);opacity:.6}
+.icon svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round}
 
 /* ---------- счёт ---------- */
 .score{
@@ -300,10 +334,10 @@ body{
   <!-- ================= ИГРА ================= -->
   <section class="screen" id="game">
     <header class="nav">
-      <button class="back" id="toMenuTop"><svg viewBox="0 0 9 15"><path d="M7.4 1.4 2 7.5l5.4 6.1"/></svg>Меню</button>
+      <button class="back" id="toMenuTop"><svg viewBox="0 0 11 18"><path d="M9.4 1.6 2 9l7.4 7.4"/></svg>Меню</button>
       <span class="ttl">Мемо-дуэль</span>
       <button class="icon" id="restart" aria-label="Заново">
-        <svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 3.4V9h-5.6"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.42 7.61A7.3 7.3 0 1 1 11.24 5.24"/><path d="M15.12 4.83L11.02 3.15L11.46 7.33Z" fill="currentColor" stroke="none"/></svg>
       </button>
     </header>
 
@@ -621,7 +655,41 @@ var DP=(function(){
     if(v===undefined){ try{ return read().sound!==false; }catch(e){ return true; } }
     var d=read(); d.sound=!!v; write(d); return d.sound;
   }
-  return {read:read,save:save,sound:sound,names:names};
+  /* Тема приложения: '' — как в телефоне, 'light'/'dark' — выбор игрока.
+     К первой отрисовке её уже применил коротенький скрипт в шапке страницы; здесь
+     только хранение и переключение на лету. */
+  var LIGHT_BG='#F2F2F7', DARK_BG='#1C1C1E';
+  /* Какой повод для большой плашки показали в прошлый раз — чтобы при
+     следующем открытии главного экрана показать следующий по кругу.
+     Пользуется этим только главный экран, но блок памяти у всех общий. */
+  function hero(v){
+    if(v!==undefined){ var d=read(); d.hero=String(v||''); write(d); return d.hero; }
+    try{ return read().hero||''; }catch(e){ return ''; }
+  }
+  function theme(v){
+    if(v!==undefined){
+      var d=read();
+      d.theme=(v==='light'||v==='dark')?v:'';
+      write(d); wear(d.theme);
+      return d.theme;
+    }
+    try{ var t=read().theme; return (t==='light'||t==='dark')?t:''; }catch(e){ return ''; }
+  }
+  /* какая тема на экране прямо сейчас — с оглядкой на настройки телефона */
+  function dark(){
+    var t=theme();
+    if(t) return t==='dark';
+    try{ return matchMedia('(prefers-color-scheme: dark)').matches; }catch(e){ return false; }
+  }
+  function wear(t){
+    try{
+      var r=document.documentElement, m, i;
+      if(t==='light'||t==='dark') r.setAttribute('data-theme',t); else r.removeAttribute('data-theme');
+      m=document.querySelectorAll('meta[name="theme-color"]');
+      for(i=0;i<m.length;i++) m[i].setAttribute('content', dark()?DARK_BG:LIGHT_BG);
+    }catch(e){}
+  }
+  return {read:read,save:save,sound:sound,names:names,theme:theme,dark:dark,hero:hero};
 })();
 /* ---------- звук и тактильная отдача dvoeplay ---------- */
 /* Тот же блок стоит в index.html и во всех играх серии.
