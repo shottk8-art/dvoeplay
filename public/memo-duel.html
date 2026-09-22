@@ -16,8 +16,67 @@
   var c=t==='dark'?'#1C1C1E':'#F2F2F7', m=document.querySelectorAll('meta[name="theme-color"]'), i;
   for(i=0;i<m.length;i++) m[i].setAttribute('content',c);
 }catch(e){}})();
+
+/* Офлайн-режим: после первого открытия приложение работает и без сети
+   (кроме игры по сети). Регистрируем после загрузки, чтобы не отнимать
+   у страницы первые мгновения. */
+if('serviceWorker' in navigator && location.protocol!=='file:'){
+  addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
+}
+
+/* Telegram. Его скрипт нужен только внутри мини-приложения: снаружи он
+   лишь тормозил бы загрузку, а без сети вешал бы её. Первая страница
+   внутри Telegram открывается с #tgWebAppData в адресе — это и признак;
+   дальше помним его до конца сеанса, ведь при переходе в игру хвоста
+   в адресе уже нет. */
+(function(){
+  var tg=false;
+  try{
+    tg=/tgWebApp/.test(location.hash) || !!window.TelegramWebviewProxy || sessionStorage.getItem('dp:tg')==='1';
+    if(tg) sessionStorage.setItem('dp:tg','1');
+  }catch(e){}
+  if(!tg) return;
+  var s=document.createElement('script');
+  s.src='https://telegram.org/js/telegram-web-app.js';
+  s.onload=function(){
+    var W=window.Telegram&&window.Telegram.WebApp, root=document.documentElement;
+    if(!W) return;
+    function mine(){
+      try{ var t=(JSON.parse(localStorage.getItem('dvoeplay:v1')||'{}')||{}).theme;
+           return t==='light'||t==='dark'?t:''; }catch(e){ return ''; }
+    }
+    function paint(){
+      /* своей темы игрок не выбирал — идём за темой Telegram, а не телефона */
+      if(!mine() && (W.colorScheme==='dark'||W.colorScheme==='light')) root.setAttribute('data-theme',W.colorScheme);
+      var a=root.getAttribute('data-theme');
+      var dark=a ? a==='dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+      var bg=dark?'#1C1C1E':'#F2F2F7';
+      try{ W.setHeaderColor(bg); W.setBackgroundColor(bg); }catch(e){}
+      try{ if(W.setBottomBarColor) W.setBottomBarColor(bg); }catch(e){}
+    }
+    try{ W.ready(); }catch(e){}
+    try{ W.expand(); }catch(e){}
+    /* свайп вниз не должен сворачивать приложение посреди партии:
+       в «Матрёшке» и «Магнитном бое» фишки тянут пальцем */
+    try{ if(W.disableVerticalSwipes) W.disableVerticalSwipes(); }catch(e){}
+    paint();
+    try{ W.onEvent('themeChanged',paint); }catch(e){}
+    /* в играх кнопка «Назад» Telegram ведёт на главный экран */
+    try{
+      if(/(^|\/)(index\.html)?$/.test(location.pathname)) W.BackButton.hide();
+      else { W.BackButton.show(); W.BackButton.onClick(function(){ location.href='index.html'; }); }
+    }catch(e){}
+    try{ document.dispatchEvent(new Event('dp:telegram')); }catch(e){}
+  };
+  document.head.appendChild(s);
+})();
 </script>
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="dvoeplay">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Мемо-дуэль — dvoeplay</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231C1C1E'/%3E%3Crect x='13' y='16' width='17' height='32' rx='5' fill='%23E7362B'/%3E%3Crect x='34' y='16' width='17' height='32' rx='5' fill='%23F5BE0A'/%3E%3C/svg%3E">
 <style>
@@ -679,6 +738,8 @@ var DP=(function(){
   function dark(){
     var t=theme();
     if(t) return t==='dark';
+    /* своей темы нет, но её мог поставить Telegram — тогда главнее он */
+    try{ var a=document.documentElement.getAttribute('data-theme'); if(a) return a==='dark'; }catch(e){}
     try{ return matchMedia('(prefers-color-scheme: dark)').matches; }catch(e){ return false; }
   }
   function wear(t){
@@ -687,6 +748,9 @@ var DP=(function(){
       if(t==='light'||t==='dark') r.setAttribute('data-theme',t); else r.removeAttribute('data-theme');
       m=document.querySelectorAll('meta[name="theme-color"]');
       for(i=0;i<m.length;i++) m[i].setAttribute('content', dark()?DARK_BG:LIGHT_BG);
+      /* внутри Telegram его шапка тоже должна перекраситься */
+      var W=window.Telegram&&window.Telegram.WebApp;
+      if(W){ W.setHeaderColor(dark()?DARK_BG:LIGHT_BG); W.setBackgroundColor(dark()?DARK_BG:LIGHT_BG); }
     }catch(e){}
   }
   return {read:read,save:save,sound:sound,names:names,theme:theme,dark:dark,hero:hero};
