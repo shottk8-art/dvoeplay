@@ -2,7 +2,7 @@
   "id": "./",
   "name": "dvoeplay — игры для двоих",
   "short_name": "dvoeplay",
-  "description": "Девять игр для двоих: на одном телефоне, против ИИ или по сети.",
+  "description": "Десять игр для двоих: на одном телефоне, против ИИ или по сети.",
   "lang": "ru",
   "dir": "ltr",
   "start_url": "./index.html",

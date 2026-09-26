@@ -71,7 +71,7 @@ if('serviceWorker' in navigator && location.protocol!=='file:'){
   document.head.appendChild(s);
 })();
 </script>
-<meta name="description" content="dvoeplay — сборник игр для двоих на одном телефоне: 4 в ряд, Матрёшка, 5 букв, Мемо-дуэль и другие.">
+<meta name="description" content="dvoeplay — сборник игр для двоих на одном телефоне: 4 в ряд, Матрёшка, 5 букв, Мемо-дуэль, Доббль, Взломщик кода и другие.">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="dvoeplay">
@@ -366,6 +366,26 @@ body{
 @keyframes dbfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
 @keyframes dbhit{0%,52%,100%{transform:scale(1)}66%{transform:scale(1.5)}80%{transform:scale(1.18)}}
 
+/* Взломщик кода: диски велозамка прокручиваются, код сходится — и трос
+   выскакивает из корпуса. В кадрах 0% и 100% замок заперт на том же коде. */
+.ha-vz .sh{left:14px;top:4px;width:122px;height:58px;border:10px solid #56565C;border-bottom:0;
+  border-radius:60px 60px 0 0;transform-origin:5px 100%;animation:ha-vz-open 3.6s var(--spring) infinite}
+.ha-vz .bd{left:0;top:58px;width:150px;height:42px;border-radius:21px;
+  background:linear-gradient(180deg,rgba(255,255,255,.45),rgba(255,255,255,0) 45%,rgba(0,0,0,.22)),linear-gradient(180deg,var(--red-a),var(--red-b));
+  box-shadow:0 10px 18px -8px rgba(0,0,0,.6)}
+.ha-vz .wl{top:52px;width:24px;height:54px;border-radius:6px;overflow:hidden;background:#141416;
+  box-shadow:0 3px 8px rgba(0,0,0,.4)}
+.ha-vz .wl b{left:0;right:0;top:-6px;display:block;white-space:pre;text-align:center;
+  font:700 15px/22px -apple-system,system-ui,sans-serif;color:#F4F4F6;
+  animation:ha-vz-roll 3.6s var(--ease) infinite}
+.ha-vz .wl u{position:absolute;inset:0;text-decoration:none;
+  background:linear-gradient(180deg,rgba(0,0,0,.85),rgba(0,0,0,0) 40%,rgba(0,0,0,0) 60%,rgba(0,0,0,.85))}
+@keyframes ha-vz-roll{0%,10%{transform:translateY(0)}30%,42%{transform:translateY(-44px)}60%,100%{transform:translateY(0)}}
+/* трос поворачивается вокруг левого конца, правый выходит из втулки */
+.ha-vz .fr{top:50px;width:16px;height:9px;border-radius:1.5px;
+  background:linear-gradient(90deg,#77777D,#E4E4E8 45%,#8A8A90)}
+@keyframes ha-vz-open{0%,62%{transform:none}70%,86%{transform:rotate(-10deg)}96%,100%{transform:none}}
+
 /* Рисунок для игр без собственной анимации в плашке. Поле квадратное:
    плиточная графика нарисована в квадрате, и в прямоугольнике она вылезала. */
 .hero-generic{position:absolute;right:20px;top:12px;width:112px;height:112px;display:grid;place-items:center}
@@ -397,6 +417,7 @@ body{
 .t:nth-child(3){animation-delay:.11s}.t:nth-child(4){animation-delay:.15s}
 .t:nth-child(5){animation-delay:.19s}.t:nth-child(6){animation-delay:.23s}
 .t:nth-child(7){animation-delay:.27s}.t:nth-child(8){animation-delay:.31s}
+.t:nth-child(9){animation-delay:.35s}.t:nth-child(10){animation-delay:.39s}
 @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 .t:active{transform:scale(.96)}
 .t.wide{grid-column:span 2;aspect-ratio:2.15/1}
@@ -426,6 +447,7 @@ body{
 .art-hang svg{left:50%;top:15%;width:50%;transform:translateX(-50%);animation:float 7.4s ease-in-out infinite}
 .art-box svg{left:50%;top:16%;width:62%;transform:translateX(-50%);animation:float 6.8s ease-in-out infinite}
 .art-spot svg{left:50%;top:20%;width:72%;transform:translateX(-50%);animation:swing 6.6s ease-in-out infinite}
+.art-lock svg{left:50%;top:13%;width:72%;transform:translateX(-50%);animation:swing 6.6s ease-in-out infinite}
 @keyframes float{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,-7px)}}
 @keyframes swing{0%,100%{transform:translate(-50%,0) rotate(-4deg)}50%{transform:translate(-50%,-5px) rotate(4deg)}}
 @keyframes floatr{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-8px) rotate(-2deg)}}
@@ -533,7 +555,7 @@ body{
   <div class="cont" id="cont" hidden></div>
 
   <div class="section"><h2>Все игры</h2><span id="count"></span></div>
-  <p class="netnote">Все девять — вдвоём на одном телефоне, против ИИ или по сети, на двух телефонах</p>
+  <p class="netnote">Все десять — вдвоём на одном телефоне, против ИИ или по сети, на двух телефонах</p>
   <div class="bento" id="bento"></div>
 
   <p class="legal">dvoeplay<sup>&reg;</sup></p>
@@ -543,7 +565,8 @@ body{
       <a href="dvoeplay.html">4 в ряд</a> · <a href="magnitniy-boy.html">Магнитный бой</a> ·
       <a href="memo-duel.html">Мемо-дуэль</a> · <a href="matreshka.html">Матрёшка</a> ·
       <a href="dots-boxes.html">Точки и квадраты</a> · <a href="5-bukv.html">5 букв</a> ·
-      <a href="viselica.html">Быстрая виселица</a> · <a href="zahlopni-yaschik.html">Захлопни ящик</a>
+      <a href="viselica.html">Быстрая виселица</a> · <a href="zahlopni-yaschik.html">Захлопни ящик</a> ·
+      <a href="dobble.html">Доббль</a> · <a href="vzlomshik.html">Взломщик кода</a>
     </p>
   </noscript>
 
@@ -864,10 +887,11 @@ var GAMES=[
   {id:'5-bukv',          title:'5 букв',            desc:'Угадайте слово',                    full:'Угадайте слово из пяти букв за шесть попыток',        href:'5-bukv.html',           tone:'red',  art:'word',    ready:true},
   {id:'viselica',        title:'Быстрая виселица',  desc:'Слово на время',                    full:'Загадайте слово за 30 секунд и отгадывайте',          href:'viselica.html',         tone:'dark', art:'hang',    ready:true},
   {id:'zahlopni-yaschik',title:'Захлопни ящик',     desc:'Закрывайте числа',                  full:'Закрывайте числа суммой броска — ящик один на двоих', href:'zahlopni-yaschik.html', tone:'yel',  art:'box',     ready:true},
-  {id:'dobble',          title:'Доббль',            desc:'Кто первый найдёт',                 full:'У двух карт всегда один общий символ — найдите первым', href:'dobble.html',         tone:'red',  art:'spot',    ready:true}
+  {id:'dobble',          title:'Доббль',            desc:'Кто первый найдёт',                 full:'У двух карт всегда один общий символ — найдите первым', href:'dobble.html',         tone:'red',  art:'spot',    ready:true},
+  {id:'vzlomshik',       title:'Взломщик кода',     desc:'Подберите код замка',               full:'Подберите код велозамка соперника — 4 попытки за ход', href:'vzlomshik.html', tone:'dark', art:'lock', ready:true}
 ];
 
-var FEATURED='dobble';
+var FEATURED='vzlomshik';
 var FEATURED_LABEL='Новое';
 var SUGGEST=['dvoeplay','matreshka','5-bukv'];   /* что предложить, пока истории нет */
 
@@ -881,7 +905,8 @@ var ICON={
   '5-bukv':"<rect width='64' height='64' rx='14' fill='#1C1C1E'/><rect x='8' y='23' width='14' height='18' rx='4' fill='#E7362B'/><rect x='25' y='23' width='14' height='18' rx='4' fill='#F5BE0A'/><rect x='42' y='23' width='14' height='18' rx='4' fill='#E7362B'/>",
   'viselica':"<rect width='64' height='64' rx='14' fill='#1C1C1E'/><path d='M16 52V14h22' fill='none' stroke='#E7362B' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/><path d='M38 17v8' stroke='#F5BE0A' stroke-width='5' stroke-linecap='round'/><circle cx='38' cy='34' r='9' fill='none' stroke='#F5BE0A' stroke-width='6'/>",
   'zahlopni-yaschik':"<rect width='64' height='64' rx='14' fill='#1C1C1E'/><rect x='14' y='14' width='36' height='36' rx='9' fill='#F5BE0A'/><circle cx='23' cy='23' r='4' fill='#E7362B'/><circle cx='32' cy='32' r='4' fill='#E7362B'/><circle cx='41' cy='41' r='4' fill='#E7362B'/>",
-  'dobble':"<rect width='64' height='64' rx='14' fill='#1C1C1E'/><circle cx='24' cy='32' r='15' fill='#FFFFFF'/><circle cx='42' cy='32' r='15' fill='#FFFFFF' fill-opacity='.88'/><circle cx='19' cy='26' r='4.2' fill='#F5BE0A'/><circle cx='47' cy='38' r='4.2' fill='#F5BE0A'/><circle cx='26' cy='38' r='5' fill='#E7362B'/><circle cx='40' cy='26' r='5' fill='#E7362B'/>"
+  'dobble':"<rect width='64' height='64' rx='14' fill='#1C1C1E'/><circle cx='24' cy='32' r='15' fill='#FFFFFF'/><circle cx='42' cy='32' r='15' fill='#FFFFFF' fill-opacity='.88'/><circle cx='19' cy='26' r='4.2' fill='#F5BE0A'/><circle cx='47' cy='38' r='4.2' fill='#F5BE0A'/><circle cx='26' cy='38' r='5' fill='#E7362B'/><circle cx='40' cy='26' r='5' fill='#E7362B'/>",
+  'vzlomshik':"<rect width='64' height='64' rx='14' fill='#1C1C1E'/><path d='M17 36V26a15 15 0 0 1 30 0v10' fill='none' stroke='#F5BE0A' stroke-width='6'/><rect x='8' y='32' width='48' height='18' rx='9' fill='#E7362B'/><rect x='17' y='29' width='8' height='24' rx='2.5' fill='#1C1C1E'/><rect x='28' y='29' width='8' height='24' rx='2.5' fill='#1C1C1E'/><rect x='39' y='29' width='8' height='24' rx='2.5' fill='#1C1C1E'/>"
 };
 var TILE_ART={
   connect:"<svg viewBox='0 0 120 70'><circle cx='20' cy='46' r='17' fill='#E7362B'/><circle cx='56' cy='46' r='17' fill='#F5BE0A'/><circle cx='92' cy='46' r='17' fill='#E7362B'/><circle cx='56' cy='10' r='15.5' fill='none' stroke='#fff' stroke-opacity='.28' stroke-width='3'/></svg>",
@@ -892,7 +917,8 @@ var TILE_ART={
   word:"<svg viewBox='0 0 110 40'><rect x='2' y='2' width='32' height='36' rx='7' fill='#fff'/><rect x='39' y='2' width='32' height='36' rx='7' fill='#1C1C1E'/><rect x='76' y='2' width='32' height='36' rx='7' fill='#F5BE0A'/></svg>",
   hang:"<svg viewBox='0 0 70 80' fill='none' stroke-linecap='round' stroke-linejoin='round'><path d='M12 76V8h30' stroke='#E7362B' stroke-width='9'/><path d='M42 8v11' stroke='#F5BE0A' stroke-width='7'/><circle cx='42' cy='34' r='14' stroke='#F5BE0A' stroke-width='8'/></svg>",
   box:"<svg viewBox='0 0 80 70'><rect x='6' y='16' width='68' height='48' rx='10' fill='#1C1C1E'/><rect x='14' y='2' width='30' height='30' rx='8' fill='#fff'/><circle cx='22' cy='10' r='3.6' fill='#E7362B'/><circle cx='29' cy='17' r='3.6' fill='#E7362B'/><circle cx='36' cy='24' r='3.6' fill='#E7362B'/></svg>",
-  spot:"<svg viewBox='0 0 92 62'><circle cx='27' cy='31' r='28' fill='#fff'/><circle cx='65' cy='31' r='28' fill='#fff' fill-opacity='.9'/><circle cx='20' cy='21' r='7' fill='#F5BE0A'/><circle cx='30' cy='42' r='8' fill='#1C1C1E'/><circle cx='72' cy='41' r='7' fill='#F5BE0A'/><circle cx='60' cy='20' r='8' fill='#1C1C1E'/></svg>"
+  spot:"<svg viewBox='0 0 92 62'><circle cx='27' cy='31' r='28' fill='#fff'/><circle cx='65' cy='31' r='28' fill='#fff' fill-opacity='.9'/><circle cx='20' cy='21' r='7' fill='#F5BE0A'/><circle cx='30' cy='42' r='8' fill='#1C1C1E'/><circle cx='72' cy='41' r='7' fill='#F5BE0A'/><circle cx='60' cy='20' r='8' fill='#1C1C1E'/></svg>",
+  lock:"<svg viewBox='0 0 100 76'><path d='M20 44V30a30 30 0 0 1 60 0v14' fill='none' stroke='#F5BE0A' stroke-width='9'/><rect x='2' y='40' width='96' height='30' rx='15' fill='#E7362B'/><g font-family='-apple-system,system-ui,sans-serif' font-size='15' font-weight='700' fill='#fff' text-anchor='middle'><rect x='17' y='35' width='14' height='40' rx='4' fill='#111'/><rect x='35' y='35' width='14' height='40' rx='4' fill='#111'/><rect x='53' y='35' width='14' height='40' rx='4' fill='#111'/><rect x='71' y='35' width='14' height='40' rx='4' fill='#111'/><text x='24' y='60'>2</text><text x='42' y='60'>6</text><text x='60' y='60'>0</text><text x='78' y='60'>4</text></g></svg>"
 };
 var HERO_ART={
   /* 4 в ряд: три фишки уже в ряду, четвёртая падает и достраивает его */
@@ -941,6 +967,17 @@ var HERO_ART={
   'dobble':'<div class="hero-art ha-db" aria-hidden="true">'+
     '<i class="cd a"><b class="p1"></b><b class="p2"></b><b class="hit"></b></i>'+
     '<i class="cd b"><b class="p1"></b><b class="p2"></b><b class="hit"></b></i>'+
+  '</div>',
+
+  /* Взломщик кода: диски прокручиваются, код сходится, трос выскакивает.
+     В каждом диске столбик из пяти цифр: в покое видна вторая, в середине
+     петли — четвёртая, а потом диск возвращается. */
+  'vzlomshik':'<div class="hero-art ha-vz" aria-hidden="true">'+
+    '<i class="sh"></i><i class="bd"></i><i class="fr" style="left:11px"></i><i class="fr" style="left:123px"></i>'+
+    cols(4,function(x,i){
+      var col=['9\n2\n7\n0\n1','5\n6\n1\n8\n3','3\n0\n4\n5\n9','8\n4\n2\n9\n6'][i];
+      return '<i class="wl" style="left:'+(21+x)+'px"><b style="animation-delay:'+(i*0.12)+'s">'+col+'</b><u></u></i>';
+    },28)+
   '</div>',
 
   /* Быстрая виселица: виселица покачивается, буквы встают на места */
@@ -1109,7 +1146,7 @@ function renderBento(){
           '</a>';
   }
   document.getElementById('bento').innerHTML=html;
-  document.getElementById('count').textContent = ready===total ? 'Все девять' : ready+' из '+total;
+  document.getElementById('count').textContent = ready===total ? 'Все десять' : ready+' из '+total;
 }
 
 /* ---------- статистика ---------- */
