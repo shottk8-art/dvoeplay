@@ -62,13 +62,38 @@ export function okMove(v){
   return false;
 }
 
-/* метка хода: клиент повторяет ход, пока сервер не подтвердит, и метка
-   не даёт применить один и тот же ход дважды */
-function okMid(v){ return typeof v === 'string' && v.length > 0 && v.length <= 32; }
+/* Метка хода: «кто-и-какой-по-счёту», например `k3f9a:7`. Клиент повторяет
+   ход, пока сервер не подтвердит, и метка не даёт применить один и тот же
+   ход дважды.
 
-function blank(game){
+   Одной последней метки мало. Телефон в лифте: запрос завис в сети, клиент
+   сдался, повторил ход, а там, где ход остаётся за тем же игроком («Мемо-дуэль»,
+   «Захлопни ящик», «Точки и квадраты»), успел сходить ещё раз — и только
+   теперь до сервера доезжает самый первый запрос. Его метка уже не совпадает
+   с последней, а очередь всё ещё за этим игроком, и ход лёг бы в список
+   ВТОРОЙ раз: у обоих игроков карточка переворачивалась бы сама. Поэтому
+   сравниваем не метки, а номера: ход старее принятого — не принимаем. */
+function okMid(v){ return typeof v === 'string' && v.length > 0 && v.length <= 32; }
+function midOf(v){
+  const s = String(v == null ? '' : v);
+  const i = s.lastIndexOf(':');
+  const n = i < 0 ? NaN : Number(s.slice(i + 1));
+  return { tag: i < 0 ? '' : s.slice(0, i), no: Number.isFinite(n) ? n : NaN };
+}
+/* этот ход от нас уже приняли — сам он или кто-то из его предшественников */
+function seenBefore(room, seat, mid){
+  const last = room.mids[seat - 1];
+  if (!last) return false;
+  if (last === mid) return true;
+  const a = midOf(last), b = midOf(mid);
+  /* перезашёл игрок — метка с новой приставкой, счёт начинается заново */
+  return !!a.tag && a.tag === b.tag && Number.isFinite(a.no) && Number.isFinite(b.no) && b.no <= a.no;
+}
+
+function blank(game, free){
   return {
     game,
+    free: !!free,            /* комната без очереди: ходят оба сразу, «Доббль» */
     seed: rnd(1e9),          /* общая случайность: колода, загаданное слово, броски */
     created: now(),
     touched: now(),
@@ -89,6 +114,7 @@ function patch(room){
   if (typeof room.turn !== 'number') room.turn = starterOf(room.round);
   if (!room.who) room.who = ['', ''];
   if (!room.mids) room.mids = ['', ''];
+  if (typeof room.free !== 'boolean') room.free = false;
   return room;
 }
 
@@ -146,7 +172,7 @@ async function once(store, action, data){
       const code = newCode();
       const cur = await store.read(key(code));
       if (cur && at - cur.value.touched < LIFETIME) continue;
-      const room = blank(game);
+      const room = blank(game, data.free);
       const token = newToken();
       room.seats[0] = token;
       room.seen[0] = at;
@@ -208,17 +234,34 @@ async function once(store, action, data){
 
   if (action === 'move'){
     if (!okMove(data.move)) return bad(400, 'Недопустимый ход');
-    /* тот же ход прислали второй раз: ответ на первую попытку потерялся
-       в дороге. Он уже учтён — просто отдаём нынешнюю картину */
-    if (okMid(data.mid) && room.mids[seat - 1] === data.mid){
+    /* ход прислали второй раз или он опоздал: ответ на первую попытку
+       потерялся в дороге, а ход уже учтён — просто отдаём нынешнюю картину */
+    if (okMid(data.mid) && seenBefore(room, seat, data.mid)){
       return ok(view(room, seat, data.since, at));
     }
     if (room.moves.length >= MAX_MOVES) return bad(409, 'Слишком много ходов');
-    if (room.turn !== seat) return bad(409, 'Сейчас не ваш ход');
+    /* Комната без очереди («Доббль»): ходят оба одновременно, кто быстрее.
+       Спрашивать «чей ход» и «видел ли он чужой ход» тут не о чем — заявки
+       обоих просто ложатся в общий список в порядке прихода, и этот порядок
+       одинаков у обоих игроков. Кто опоздал, тот и опоздал: его заявка на
+       уже забранную карту у обоих одинаково ничего не делает. */
+    if (!room.free){
+      if (room.turn !== seat) return bad(409, 'Сейчас не ваш ход');
+      /* Ходить можно только с той картины поля, которая уже совпадает с нашей.
+         `since` — сколько ходов раунда знает клиент вместе с этим, своим; если
+         их не больше, чем у нас уже лежит, значит чужой ход он ещё не видел, и
+         его ход построен на устаревшем поле: он тапнул карточку, которую
+         соперник уже забрал. Такой ход принять нельзя — в списке ходов он стал
+         бы неразыгрываемым, и у второго игрока поле пересобиралось бы заново
+         снова и снова. Клиент на 409 догонит нас и сходит ещё раз. */
+      if (Number.isFinite(data.since) && data.since <= room.moves.length){
+        return bad(409, 'Сначала дождитесь хода соперника');
+      }
+    }
     if ((data.round | 0) !== room.round) return bad(409, 'Раунд уже сменился');
     const next = data.next | 0;
     room.moves.push(data.move);
-    room.turn = (next === 1 || next === 2) ? next : (3 - seat);
+    if (!room.free) room.turn = (next === 1 || next === 2) ? next : (3 - seat);
     if (okMid(data.mid)) room.mids[seat - 1] = data.mid;
     if (!(await save())) return AGAIN;
     return ok(view(room, seat, data.since, at));

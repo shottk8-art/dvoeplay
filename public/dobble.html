@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1C1C1E" media="(prefers-color-scheme: dark)">
 <script>
@@ -77,7 +77,7 @@ if('serviceWorker' in navigator && location.protocol!=='file:'){
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Магнитный бой — dvoeplay</title>
+<title>Доббль — dvoeplay</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <style>
@@ -99,7 +99,7 @@ if('serviceWorker' in navigator && location.protocol!=='file:'){
   --spring:cubic-bezier(.34,.62,.3,1.25);
   --thumb-shadow:0 3px 8px rgba(0,0,0,.12),0 3px 1px rgba(0,0,0,.04);
   --card-shadow:0 1px 2px rgba(0,0,0,.05),0 8px 24px -10px rgba(0,0,0,.14);
-  --ball-shadow:0 2px 6px rgba(0,0,0,.20);
+  --tile-shadow:0 1px 2px rgba(0,0,0,.10),0 2px 6px -3px rgba(0,0,0,.14);
 }
 /* Тёмная тема. По умолчанию берётся из настроек телефона, но выбор
    в приложении важнее: атрибут data-theme ставится ещё до отрисовки. */
@@ -119,7 +119,7 @@ if('serviceWorker' in navigator && location.protocol!=='file:'){
     --ok:#30D158;
     --thumb-shadow:0 3px 8px rgba(0,0,0,.5);
     --card-shadow:0 1px 2px rgba(0,0,0,.4);
-    --ball-shadow:0 3px 9px rgba(0,0,0,.45);
+    --tile-shadow:0 1px 2px rgba(0,0,0,.35);
   }
 }
 :root[data-theme="dark"]{
@@ -137,7 +137,7 @@ if('serviceWorker' in navigator && location.protocol!=='file:'){
     --ok:#30D158;
     --thumb-shadow:0 3px 8px rgba(0,0,0,.5);
     --card-shadow:0 1px 2px rgba(0,0,0,.4);
-    --ball-shadow:0 3px 9px rgba(0,0,0,.45);
+    --tile-shadow:0 1px 2px rgba(0,0,0,.35);
   }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden}
@@ -146,7 +146,6 @@ body{
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
   -webkit-font-smoothing:antialiased;overscroll-behavior:none;
 }
-.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 #app{position:fixed;inset:0;overflow:hidden}
 .screen{
   position:absolute;inset:0;display:flex;flex-direction:column;background:var(--bg);
@@ -163,24 +162,97 @@ body{
 #menu{overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
 .brand{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
 
+/* ---------- заставка меню: две карты, общий символ вспыхивает на обеих ---------- */
 .mini{
   position:relative;width:min(62%,216px);aspect-ratio:5/2;
   background:var(--surface);border-radius:18px;overflow:hidden;
   box-shadow:var(--card-shadow);margin-bottom:30px;
 }
-.mini .dish{position:absolute;left:8%;right:8%;top:20%;bottom:20%;border-radius:999px;background:var(--well)}
-.mini .d{
-  position:absolute;top:50%;width:16%;aspect-ratio:1;border-radius:50%;
-  transform:translate(-50%,-50%);
-  box-shadow:0 1px 2px rgba(0,0,0,.16),inset 0 -1px 2px rgba(0,0,0,.12);
-  animation:minidrop .55s var(--spring);
-  transition:left .3s var(--spring),opacity .34s ease,transform .34s var(--spring);
+.mini .mc{
+  position:absolute;top:50%;width:37%;aspect-ratio:1;transform:translate(-50%,-50%);
+  transition:transform .42s var(--spring),opacity .3s ease;
 }
-.mini .d.r{background:radial-gradient(120% 120% at 32% 22%,var(--red-a),var(--red-b) 70%)}
-.mini .d.y{background:radial-gradient(120% 120% at 32% 22%,var(--yel-a),var(--yel-b) 70%)}
-.mini .d.gone{opacity:0;transform:translate(-50%,-50%) scale(.5)}
-@keyframes minidrop{from{top:-28%}to{top:50%}}
+.mini .mc.l{left:29%}.mini .mc.r{left:71%}
+.mini .mc.swap{opacity:0;transform:translate(-50%,-50%) scale(.7) rotate(-30deg)}
+.mini .mc svg{display:block;width:100%;height:100%;overflow:visible}
+.mini .mc{border-radius:50%;background:var(--surface);box-shadow:0 0 0 1.5px var(--sep),var(--tile-shadow)}
 
+/* ---------- поле ---------- */
+#game{touch-action:none;-webkit-user-select:none;user-select:none}
+.stage{
+  flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:space-between;
+  padding:6px 0 2px;
+}
+.zone{display:flex;flex-direction:column;align-items:center;gap:5px;flex:none;transition:opacity .25s ease}
+.zone.top{flex-direction:column-reverse}
+/* вдвоём телефон лежит на столе: верхняя половина смотрит на второго игрока */
+.duo .zone.top{transform:rotate(180deg);flex-direction:column}
+.tag{
+  display:flex;align-items:center;gap:6px;height:20px;
+  font-size:13px;color:var(--label2);letter-spacing:-.05px;white-space:nowrap;
+}
+.tag .dot{width:9px;height:9px;border-radius:50%;flex:none}
+.tag.s1 .dot{background:radial-gradient(120% 120% at 32% 22%,var(--red-a),var(--red-b) 70%)}
+.tag.s2 .dot{background:radial-gradient(120% 120% at 32% 22%,var(--yel-a),var(--yel-b) 70%)}
+.tag b{font-size:15px;font-weight:700;color:var(--label);letter-spacing:-.3px;font-variant-numeric:tabular-nums}
+.tag .cap{color:var(--label3)}
+
+.dc{
+  position:relative;width:var(--d,200px);height:var(--d,200px);border-radius:50%;flex:none;
+  background:var(--surface);box-shadow:var(--card-shadow);
+  transition:transform .38s var(--spring),opacity .25s ease;
+}
+.dc svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.dc::after{content:"";position:absolute;inset:0;border-radius:50%;pointer-events:none;
+  box-shadow:inset 0 0 0 3px var(--ring,transparent)}
+.dc.s1{--ring:var(--red-b)}
+.dc.s2{--ring:var(--yel-b)}
+.dc.small{width:var(--ds,120px);height:var(--ds,120px)}
+.dc.me{cursor:pointer}
+.dc.back{background:var(--well)}
+.dc.back svg{opacity:0}
+.dc.back::before{
+  content:"";position:absolute;left:50%;top:50%;width:26%;aspect-ratio:1;border-radius:50%;
+  transform:translate(-50%,-50%);opacity:.5;
+  background:linear-gradient(90deg,var(--red-b) 0 50%,var(--yel-b) 50% 100%);
+}
+.dc.pop{animation:dcpop .42s var(--spring)}
+@keyframes dcpop{from{transform:scale(.6) rotate(-40deg);opacity:0}to{transform:none;opacity:1}}
+.dc.fly{transition:transform .36s cubic-bezier(.32,.72,0,1),opacity .36s ease;z-index:3}
+.zone.miss .dc{animation:shake .38s ease}
+.zone.frozen .dc.me{opacity:.45}
+@keyframes shake{0%,100%{translate:0}20%{translate:-7px}45%{translate:6px}70%{translate:-4px}}
+
+/* символы: цвет задаётся классом, «прорези» — цветом карты */
+.sy{transform-box:fill-box;transform-origin:center}
+.sy.r{fill:var(--red-b);stroke:var(--red-b);color:var(--red-b)}
+.sy.y{fill:var(--yel-b);stroke:var(--yel-b);color:var(--yel-b)}
+.sy.k{fill:var(--label);stroke:var(--label);color:var(--label)}
+.sy *{stroke:none}
+.sy .ln{fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round}
+.sy .ko{fill:var(--surface)}
+.sy .kol{fill:none;stroke:var(--surface);stroke-linecap:round;stroke-linejoin:round}
+.sy .hit{fill:transparent}
+.sy.win{animation:win .6s var(--spring)}
+.sy.tap{animation:tapq .22s ease}
+@keyframes win{0%{transform:scale(1)}40%{transform:scale(1.42)}100%{transform:scale(1.12)}}
+@keyframes tapq{50%{transform:scale(.86)}}
+
+.mid{display:flex;flex-direction:column;align-items:center;gap:4px;flex:none;position:relative}
+.left{font-size:12px;color:var(--label3);letter-spacing:-.02px;height:16px;font-variant-numeric:tabular-nums}
+.count{
+  position:absolute;left:50%;top:calc(var(--d,200px)/2);transform:translate(-50%,-50%);
+  font-size:64px;font-weight:800;letter-spacing:-2px;color:var(--label);pointer-events:none;
+  opacity:0;transition:opacity .2s ease;z-index:4;
+}
+.count.on{opacity:1;animation:cnt .9s ease}
+@keyframes cnt{0%{transform:translate(-50%,-50%) scale(1.5);opacity:0}25%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+.hint{
+  flex:none;margin:4px 0 0;min-height:19px;text-align:center;
+  font-size:13px;font-weight:600;letter-spacing:-.1px;color:var(--label2);transition:color .2s ease;
+}
+.hint.good{color:var(--ok)}
+.duo .hint{display:none}
 .wordmark{margin:0;font-size:40px;font-weight:800;letter-spacing:-1.5px;line-height:1;color:var(--label)}
 .wordmark .o{
   display:inline-block;width:.6em;height:.6em;border-radius:50%;
@@ -232,82 +304,6 @@ body{
 .icon:active{transform:scale(.9);opacity:.6}
 .icon svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round}
 
-/* ---------- счёт ---------- */
-.score{
-  position:relative;flex:none;margin-top:12px;padding:4px;border-radius:16px;background:var(--fill);
-  display:grid;grid-template-columns:1fr 1fr;
-}
-.score .slider{
-  position:absolute;top:4px;bottom:4px;left:4px;width:calc(50% - 4px);border-radius:12px;
-  background:var(--slider);box-shadow:var(--thumb-shadow);
-  transition:transform .34s var(--spring),opacity .3s ease;
-}
-.score.p2 .slider{transform:translateX(100%)}
-.side{position:relative;padding:9px 6px 8px;text-align:center;transition:opacity .24s ease}
-.side.off{opacity:.5}
-.side .who{display:flex;align-items:center;justify-content:center;gap:5px;font-size:13px;color:var(--label2);letter-spacing:-.05px}
-.side .dot{width:8px;height:8px;border-radius:50%;flex:none}
-.side.a .dot{background:radial-gradient(120% 120% at 32% 22%,var(--red-a),var(--red-b) 70%)}
-.side.b .dot{background:radial-gradient(120% 120% at 32% 22%,var(--yel-a),var(--yel-b) 70%)}
-.side .num{
-  margin:1px 0 0;font-size:24px;font-weight:700;letter-spacing:-.6px;line-height:1.15;
-  font-variant-numeric:tabular-nums;transition:transform .28s var(--spring);
-}
-.side.bump .num{transform:scale(1.18)}
-.side .cap{font-size:11px;color:var(--label3);letter-spacing:0}
-
-/* ---------- арена ---------- */
-.stage{flex:1;min-height:0;min-width:0;display:flex;align-items:center;justify-content:center;padding:10px 0 6px}
-.well{
-  position:relative;flex:none;
-  width:min(100%,316px);aspect-ratio:1;
-  border-radius:50%;background:var(--well);
-  box-shadow:0 0 0 9px var(--surface),inset 0 1px 3px rgba(0,0,0,.08);
-  touch-action:none;cursor:crosshair;
-}
-.fx{position:absolute;inset:0;border-radius:50%;overflow:hidden;pointer-events:none}
-
-.ball{
-  position:absolute;width:10%;aspect-ratio:1;border-radius:50%;
-  transform:translate(-50%,-50%);
-  background:radial-gradient(120% 120% at 32% 22%,var(--a),var(--b) 70%);
-  box-shadow:var(--ball-shadow),inset 0 -2px 4px rgba(0,0,0,.16);
-  transition:left .2s var(--spring),top .2s var(--spring),background .3s ease;
-}
-.ball.p1{--a:var(--red-a);--b:var(--red-b)}
-.ball.p2{--a:var(--yel-a);--b:var(--yel-b)}
-.ball.drop{animation:drop .4s var(--spring)}
-@keyframes drop{0%{transform:translate(-50%,-50%) scale(.25);opacity:.25}100%{transform:translate(-50%,-50%) scale(1)}}
-.ball.pulled{box-shadow:var(--ball-shadow),inset 0 -2px 4px rgba(0,0,0,.16),0 0 0 3px rgba(255,255,255,.3)}
-.ball.fly{transition:transform .42s cubic-bezier(.5,0,.75,0),opacity .42s ease;opacity:0}
-
-.ghost{
-  position:absolute;width:10%;aspect-ratio:1;border-radius:50%;z-index:3;
-  transform:translate(-50%,-50%);pointer-events:none;opacity:0;
-  background:radial-gradient(120% 120% at 32% 22%,var(--a),var(--b) 70%);
-  box-shadow:0 2px 8px rgba(0,0,0,.2);
-  transition:opacity .16s ease;
-}
-.ghost.on{opacity:.9}
-.ghost.p1{--a:var(--red-a);--b:var(--red-b)}
-.ghost.p2{--a:var(--yel-a);--b:var(--yel-b)}
-.ring{
-  position:absolute;width:42%;aspect-ratio:1;border-radius:50%;
-  transform:translate(-50%,-50%);pointer-events:none;opacity:0;
-  border:1.5px dashed var(--label3);
-  transition:opacity .16s ease,border-color .16s ease,background .16s ease;
-}
-.ring.on{opacity:1}
-.ring.hot{border-color:var(--red-b);border-style:solid;background:radial-gradient(circle,rgba(231,54,43,.13),rgba(231,54,43,0) 72%)}
-
-.hint{
-  flex:none;margin:6px 0 0;min-height:19px;text-align:center;
-  font-size:13px;font-weight:600;letter-spacing:-.1px;color:var(--label2);
-  transition:color .2s ease;
-}
-.hint.good{color:var(--ok)}
-.hint.warn{color:var(--red-b)}
-
 /* ---------- шторка итога ---------- */
 .scrim{
   position:absolute;inset:0;background:rgba(0,0,0,.34);opacity:0;pointer-events:none;
@@ -329,11 +325,13 @@ body{
 .medal svg{width:28px;height:28px;fill:#fff}
 .medal.a{background:radial-gradient(120% 120% at 32% 22%,var(--red-a),var(--red-b) 70%)}
 .medal.b{background:radial-gradient(120% 120% at 32% 22%,var(--yel-a),var(--yel-b) 70%)}
+.medal.n{background:var(--fill)}
+.medal.n svg{fill:var(--label3)}
 .sheet h2{margin:0;text-align:center;font-size:24px;font-weight:700;letter-spacing:-.45px}
 .sheet p{margin:5px 0 22px;text-align:center;font-size:15px;color:var(--label2);letter-spacing:-.1px}
 .forfeit{
   display:none;width:100%;align-items:center;gap:12px;text-align:left;
-  background:var(--fill);border:0;border-radius:14px;padding:14px 14px 14px 16px;margin:-6px 0 20px;
+  background:var(--fill);border:0;border-radius:14px;padding:14px 14px 14px 16px;margin-bottom:12px;
   color:inherit;font:inherit;cursor:pointer;transition:transform .18s var(--spring);
 }
 .forfeit.on{display:flex}
@@ -350,8 +348,7 @@ body{
 .btn+.btn{margin-top:9px}
 .btn.primary{background:var(--tint);color:#fff}
 .btn:active{transform:scale(.97);opacity:.9}
-
-:focus-visible{outline:2.5px solid var(--tint);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 @media (prefers-reduced-motion: reduce){
   *{animation-duration:.001s!important;transition-duration:.06s!important}
 }
@@ -360,9 +357,8 @@ body{
   .mini{margin-bottom:22px}
   .footnote{margin-top:10px}
   .legal{margin-top:7px}
-  .side .num{font-size:21px}
   .row{padding:11px 16px}
-  .score{margin-top:9px}
+  .count{font-size:52px}
 }
 </style>
 </head>
@@ -372,24 +368,24 @@ body{
   <section class="screen" id="menu">
     <a class="tohub" href="index.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Все игры</a>
     <div class="brand">
-      <div class="mini" id="mini" aria-hidden="true"></div>
+      <div class="mini" id="mini" aria-hidden="true"><div class="mc l" id="miniL"></div><div class="mc r" id="miniR"></div></div>
       <h1 class="wordmark">dv<span class="o"></span>eplay</h1>
       <p class="tagline">Игры для двоих</p>
-      <p class="footnote">Выложи все десять магнитов, не дав им слипнуться</p>
+      <p class="footnote">У любых двух карт ровно один общий символ. Найдите его на своей карте раньше соперника — и заберите центральную</p>
     </div>
 
-    <h2 class="section">Магнитный бой</h2>
+    <h2 class="section">Доббль</h2>
     <div class="list">
       <button class="row" data-mode="0">
-        <span class="t"><b>Легко</b><i>Кладёт куда придётся</i></span>
+        <span class="t"><b>Легко</b><i>Соперник не торопится</i></span>
         <svg class="chev" viewBox="0 0 9 14"><path d="M1.6 1.4 7 7l-5.4 5.6"/></svg>
       </button>
       <button class="row" data-mode="1">
-        <span class="t"><b>Сложно</b><i>Считает, сколько места останется вам</i></span>
+        <span class="t"><b>Сложно</b><i>Соперник замечает быстро</i></span>
         <svg class="chev" viewBox="0 0 9 14"><path d="M1.6 1.4 7 7l-5.4 5.6"/></svg>
       </button>
       <button class="row" data-mode="2">
-        <span class="t"><b>Вдвоём</b><i>На одном телефоне, по очереди</i></span>
+        <span class="t"><b>Вдвоём</b><i>Телефон на столе, экран пополам</i></span>
         <svg class="chev" viewBox="0 0 9 14"><path d="M1.6 1.4 7 7l-5.4 5.6"/></svg>
       </button>
       <button class="row" data-mode="3">
@@ -404,41 +400,36 @@ body{
   <section class="screen" id="game">
     <header class="nav">
       <button class="back" id="toMenuTop"><svg viewBox="0 0 11 18"><path d="M9.4 1.6 2 9l7.4 7.4"/></svg>Меню</button>
-      <span class="ttl">Магнитный бой</span>
+      <span class="ttl">Доббль</span>
       <button class="icon" id="restart" aria-label="Заново">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.42 7.61A7.3 7.3 0 1 1 11.24 5.24"/><path d="M15.12 4.83L11.02 3.15L11.46 7.33Z" fill="currentColor" stroke="none"/></svg>
       </button>
     </header>
 
-    <div class="score" id="score">
-      <div class="slider"></div>
-      <div class="side a" id="sideA">
-        <span class="who"><span class="dot"></span><span id="nameA">Вы</span></span>
-        <p class="num" id="numA">10</p>
-        <span class="cap">в руке</span>
+    <div class="stage" id="stage">
+      <div class="zone top" id="zTop">
+        <div class="tag" id="tagTop"><span class="dot"></span><span id="nameTop">Соперник</span><b id="numTop">0</b></div>
+        <div class="dc" id="cTop"></div>
       </div>
-      <div class="side b off" id="sideB">
-        <span class="who"><span class="dot"></span><span id="nameB">Соперник</span></span>
-        <p class="num" id="numB">10</p>
-        <span class="cap">в руке</span>
+      <div class="mid">
+        <div class="dc" id="cMid"></div>
+        <div class="count" id="count" aria-hidden="true"></div>
+        <div class="left" id="left"></div>
       </div>
-    </div>
-
-    <div class="stage">
-      <div class="well" id="well" role="application" aria-label="Магнитная арена">
-        <div class="fx"><div class="ring" id="ring"></div></div>
-        <div class="ghost" id="ghost"></div>
+      <div class="zone bot" id="zBot">
+        <div class="dc me" id="cBot"></div>
+        <div class="tag" id="tagBot"><span class="dot"></span><span id="nameBot">Вы</span><b id="numBot">0</b></div>
       </div>
     </div>
-    <p class="hint" id="hint">Ведите пальцем — кольцо покажет поле магнита</p>
+    <p class="hint" id="hint"></p>
   </section>
 
   <div class="scrim" id="scrim"></div>
   <aside class="sheet" id="sheet" role="dialog" aria-modal="true">
     <div class="grab"></div>
-    <div class="medal a" id="medal"><svg viewBox="0 0 24 24"><path d="M12 2.6l2.7 6.1 6.6.6-5 4.4 1.5 6.5L12 16.8 6.2 20.2l1.5-6.5-5-4.4 6.6-.6z"/></svg></div>
-    <h2 id="sheetTitle">Вы выиграли</h2>
-    <p id="sheetText">Счёт 1:0</p>
+    <div class="medal n" id="medal"><svg viewBox="0 0 24 24"><path d="M12 2.6l2.7 6.1 6.6.6-5 4.4 1.5 6.5L12 16.8 6.2 20.2l1.5-6.5-5-4.4 6.6-.6z"/></svg></div>
+    <h2 id="sheetTitle">Ничья</h2>
+    <p id="sheetText">15:14</p>
     <button class="forfeit" id="forfeit" type="button" aria-label="Другой фант">
       <span class="ftext" id="ftext"></span>
       <svg class="die" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="9.5" cy="9.5" r="1.4" fill="currentColor" stroke="none"/><circle cx="14.5" cy="14.5" r="1.4" fill="currentColor" stroke="none"/></svg>
@@ -456,341 +447,80 @@ body{
 (function(){
 "use strict";
 
-/* ===== правила поля (единицы: радиус арены = 1) ===== */
-var BALL = 0.10;          /* радиус магнита */
-var MAG  = 0.42;          /* на таком расстоянии между центрами магниты слипаются */
-var LIM  = 1 - BALL;      /* дальше центр не поставить — магнит вылезет за борт */
-var START_HAND = 10;
+/* ===== символы: 31 значок, у каждого свой цвет =====
+   Рисуем сами, а не эмодзи: на всех телефонах одинаково и в цветах серии.
+   r — красный, y — жёлтый, k — цвет текста (чёрный днём, белый ночью).
+   Класс ko — «прорезь» цветом карты, ln — линия цветом символа. */
+var SYM=[
+  ['r','<path d="M12 20.7S3.3 15.3 3.3 9.4A4.75 4.75 0 0 1 12 6.6a4.75 4.75 0 0 1 8.7 2.8c0 5.9-8.7 11.3-8.7 11.3z"/>'],               /* сердце */
+  ['y','<path d="M12 2.6l2.7 6.1 6.6.6-5 4.4 1.5 6.5L12 16.8 6.2 20.2l1.5-6.5-5-4.4 6.6-.6z"/>'],                                          /* звезда */
+  ['y','<path d="M20.1 14.7A8.7 8.7 0 0 1 9.3 3.9a8.85 8.85 0 1 0 10.8 10.8z"/>'],                                                          /* месяц */
+  ['y','<path d="M13.7 2 5 13.5h5.3L9.7 22 19 10.3h-5.5z"/>'],                                                                              /* молния */
+  ['k','<path d="M12 2.5S5 10.6 5 15a7 7 0 0 0 14 0c0-4.4-7-12.5-7-12.5z"/>'],                                                             /* капля */
+  ['y','<circle cx="12" cy="12" r="4.6"/><path class="ln" stroke-width="2.4" d="M12 1.8v3M12 19.2v3M1.8 12h3M19.2 12h3M4.8 4.8l2.1 2.1M17.1 17.1l2.1 2.1M4.8 19.2l2.1-2.1M17.1 6.9l2.1-2.1"/>'], /* солнце */
+  ['k','<path d="M7 19.5h10.5a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.5 9.6 5 5 0 0 0 7 19.5z"/>'],                                               /* облако */
+  ['k','<path d="M20.5 3.5C9.5 3.5 3.5 9 3.5 15.5c0 1.6.3 3 .9 4.3C6.2 13.6 10.2 10 15.3 8.3 10.8 11 7.6 15 6.1 20.5h1.7c8 0 12.7-6.4 12.7-17z"/>'], /* лист */
+  ['r','<path d="M12 2.8c2.6 0 4.2 2.4 3.3 4.6 2.2-.9 4.6.7 4.6 3.3s-2.4 4.2-4.6 3.3c.9 2.2-.7 4.6-3.3 4.6s-4.2-2.4-3.3-4.6c-2.2.9-4.6-.7-4.6-3.3s2.4-4.2 4.6-3.3C7.8 5.2 9.4 2.8 12 2.8z"/><path class="ln" stroke-width="2.2" d="M12 15v6.5"/>'], /* клевер */
+  ['r','<path d="M14.5 5.5c-4.2 0-7.5 2.6-9.2 6.5 1.7 3.9 5 6.5 9.2 6.5 4.3 0 7.1-3 8-6.5-.9-3.5-3.7-6.5-8-6.5zM6 12 1.5 7v10z"/><circle class="ko" cx="17.6" cy="10.8" r="1.4"/>'], /* рыба */
+  ['r','<path d="M12 2.8 1.8 11.6h3V21h5.4v-5.6h3.6V21h5.4v-9.4h3z"/>'],                                                                    /* дом */
+  ['k','<path d="M12 1.8 5.6 9.8h3L4.2 15.6h6.3V22h3v-6.4h6.3l-4.4-5.8h3z"/>'],                                                            /* ёлка */
+  ['y','<circle class="ln" stroke-width="3" cx="7" cy="12" r="4.2"/><path class="ln" stroke-width="3" d="M11.2 12h10.3M18.3 12v4.3M21.3 12v3.2"/>'], /* ключ */
+  ['y','<path d="M12 2.2a1.7 1.7 0 0 1 1.7 1.7v.7a6.7 6.7 0 0 1 5 6.5v4.3l2.3 3H3l2.3-3v-4.3a6.7 6.7 0 0 1 5-6.5v-.7A1.7 1.7 0 0 1 12 2.2zM9.3 19.6h5.4a2.7 2.7 0 0 1-5.4 0z"/>'], /* колокольчик */
+  ['k','<circle class="ln" stroke-width="2.6" cx="12" cy="4.8" r="2.4"/><path class="ln" stroke-width="2.8" d="M12 7.2V21M7.2 11h9.6M3.6 13.2a8.4 8.4 0 0 0 16.8 0"/>'], /* якорь */
+  ['r','<path d="M12 2.2A10 10 0 0 0 2 12.2h20a10 10 0 0 0-10-10z"/><path class="ln" stroke-width="2.6" d="M12 12v6.6a2.3 2.3 0 0 1-4.6 0"/>'], /* зонт */
+  ['r','<path d="M2.6 12.4a9.4 8.6 0 0 1 18.8 0z"/><path d="M8.8 11.8h6.4l1.1 8.6a1.6 1.6 0 0 1-1.6 1.8H9.5a1.6 1.6 0 0 1-1.6-1.8z"/><circle class="ko" cx="8.4" cy="8.4" r="1.6"/><circle class="ko" cx="14.6" cy="6.9" r="1.3"/><circle class="ko" cx="16.3" cy="10.5" r="1.1"/>'], /* гриб */
+  ['r','<path d="M12 8c-1.4-1-2.7-1.4-4.2-1.3C4.8 6.9 3.2 9.4 3.2 12.4c0 4.6 3.1 9.6 5.9 9.6 1.2 0 1.8-.6 2.9-.6s1.7.6 2.9.6c2.8 0 5.9-5 5.9-9.6 0-3-1.6-5.5-4.6-5.7-1.5-.1-2.8.3-4.2 1.3z"/><path d="M12 6.8c0-2.6 1.6-4.4 4.3-4.6-.2 2.6-1.9 4.4-4.3 4.6z"/>'], /* яблоко */
+  ['r','<circle cx="6.8" cy="17" r="4.1"/><circle cx="17.2" cy="15.8" r="4.1"/><path class="ln" stroke-width="2" d="M6.8 13c.9-4.2 3.6-8 8.6-10.6M17.2 11.8c-.4-3.4-.9-6.3-1.8-9.4"/>'], /* вишня */
+  ['y','<path d="M2.6 7.2l4.8 4.2L12 4.6l4.6 6.8 4.8-4.2-1.8 11H4.4z"/><rect x="4.4" y="19.6" width="15.2" height="2.4" rx="1"/>'],        /* корона */
+  ['k','<path d="M12 2.2a7.8 7.8 0 0 0-7.8 7.8v12l2.6-2.1 2.6 2.1 2.6-2.1 2.6 2.1 2.6-2.1 2.6 2.1V10A7.8 7.8 0 0 0 12 2.2z"/><circle class="ko" cx="9.2" cy="10" r="1.7"/><circle class="ko" cx="14.8" cy="10" r="1.7"/>'], /* привидение */
+  ['k','<path d="M1.2 12S5.4 4.8 12 4.8 22.8 12 22.8 12 18.6 19.2 12 19.2 1.2 12 1.2 12z"/><circle class="ko" cx="12" cy="12" r="4.4"/><circle cx="12" cy="12" r="2.3"/>'], /* глаз */
+  ['k','<circle cx="6.3" cy="18.4" r="3.2"/><circle cx="17.3" cy="16" r="3.2"/><path d="M7.9 18.4V6.2L20.5 3v13h-2.6V8.4l-7.4 2v8z"/>'], /* нота */
+  ['k','<path class="ln" stroke-width="2.4" d="M12 1.8v20.4M3.2 6.9l17.6 10.2M3.2 17.1 20.8 6.9M9.3 3.6 12 5.8l2.7-2.2M9.3 20.4 12 18.2l2.7 2.2"/>'], /* снежинка */
+  ['k','<path d="M12 1.8c3.1 2.3 4.7 5.9 4.7 9.8v4.7H7.3v-4.7c0-3.9 1.6-7.5 4.7-9.8zM7.3 12 4.2 15.6v3.9l3.1-1.6zM16.7 12l3.1 3.6v3.9l-3.1-1.6zM9.9 17.8h4.2L12 22.4z"/><circle class="ko" cx="12" cy="9.6" r="1.9"/>'], /* ракета */
+  ['y','<path d="M3.6 6.6h12.8v8.2a5.3 5.3 0 0 1-5.3 5.3H8.9a5.3 5.3 0 0 1-5.3-5.3z"/><path class="ln" stroke-width="2.5" d="M16.4 9h1.4a3.1 3.1 0 0 1 0 6.2h-1.4"/>'], /* кружка */
+  ['r','<path class="ln" stroke-width="2.6" d="M5 22V2.6"/><path d="M6 3.4h14l-3.3 4.9L20 13.2H6z"/>'],                                  /* флаг */
+  ['y','<path d="M6.8 3.2h10.4l4.8 5.8L12 21.4 2 9z"/><path class="kol" stroke-width="1.3" d="M2.4 9h19.2M8.8 9 12 20.6 15.2 9M6.8 3.4 8.8 9 12 3.6 15.2 9l2-5.6"/>'], /* кристалл */
+  ['k','<path class="ln" stroke-width="2.8" d="M7.4 11V8a4.6 4.6 0 0 1 9.2 0v3"/><rect x="4.2" y="10.2" width="15.6" height="11.6" rx="2.8"/><circle class="ko" cx="12" cy="15.2" r="1.8"/><path class="kol" stroke-width="1.8" d="M12 16v2.4"/>'], /* замок */
+  ['y','<path d="M12 1.8a7 7 0 0 0-4.1 12.7c.8.6 1.3 1.6 1.3 2.6v.3h5.6v-.3c0-1 .5-2 1.3-2.6A7 7 0 0 0 12 1.8z"/><path d="M9.2 18.8h5.6V20a2 2 0 0 1-2 2h-1.6a2 2 0 0 1-2-2z"/>'], /* лампочка */
+  ['r','<path d="M3.6 2.4l4.5 4.5a9.4 9.4 0 0 1 7.8 0l4.5-4.5v10a8.4 8.4 0 0 1-16.8 0z"/><circle class="ko" cx="9" cy="12.6" r="1.5"/><circle class="ko" cx="15" cy="12.6" r="1.5"/><path class="ko" d="M10.9 15.6h2.2L12 17z"/>'] /* кошка */
+];
+var NAMES=['сердце','звезда','месяц','молния','капля','солнце','облако','лист','клевер','рыба','дом','ёлка','ключ','колокольчик',
+  'якорь','зонт','гриб','яблоко','вишня','корона','привидение','глаз','нота','снежинка','ракета','кружка','флаг','кристалл','замок',
+  'лампочка','кошка'];
 
-var app=document.getElementById('app');
-var wellEl=document.getElementById('well');
-var ghostEl=document.getElementById('ghost');
-var ringEl=document.getElementById('ring');
-var hintEl=document.getElementById('hint');
-var liveEl=document.getElementById('live');
-var scoreEl=document.getElementById('score');
-var sideEl=[null,document.getElementById('sideA'),document.getElementById('sideB')];
-var numEl=[null,document.getElementById('numA'),document.getElementById('numB')];
-var nameEl=[null,document.getElementById('nameA'),document.getElementById('nameB')];
-var scrim=document.getElementById('scrim');
-var sheet=document.getElementById('sheet');
-var medal=document.getElementById('medal');
-var forfeitEl=document.getElementById('forfeit');
-var ftextEl=document.getElementById('ftext');
-
-var balls=[];                 /* {x,y,p,el} */
-var hand=[0,START_HAND,START_HAND];
-var wins=[0,0,0];
-var mode=1, turn=1, starter=1, plies=0;   /* 0 — легко, 1 — сложно, 2 — вдвоём, 3 — по сети */
-var net={seat:1,round:0};
-var over=false, locked=false, aiming=false, hinted=false, session=0;
-
-/* ===== сетка для ИИ ===== */
-var GRID=(function(){
-  var a=[],s=0.045;
-  for(var x=-LIM;x<=LIM+1e-9;x+=s)
-    for(var y=-LIM;y<=LIM+1e-9;y+=s)
-      if(x*x+y*y<=LIM*LIM) a.push([x,y]);
-  return a;
-})();
-
-function dist2(ax,ay,bx,by){ var dx=ax-bx, dy=ay-by; return dx*dx+dy*dy; }
-function pulledBy(x,y,list){
-  var r=[],i;
-  for(i=0;i<list.length;i++) if(dist2(x,y,list[i].x,list[i].y)<=MAG*MAG) r.push(list[i]);
-  return r;
-}
-function isFree(x,y,list){
-  for(var i=0;i<list.length;i++) if(dist2(x,y,list[i].x,list[i].y)<=MAG*MAG) return false;
-  return true;
-}
-/* сколько магнитов ещё влезет, не слипнувшись */
-function capacity(list){
-  var v=list.slice(), n=0, i, j, ok;
-  for(i=0;i<GRID.length;i++){
-    ok=true;
-    for(j=0;j<v.length;j++) if(dist2(GRID[i][0],GRID[i][1],v[j].x,v[j].y)<=MAG*MAG){ok=false;break;}
-    if(ok){ v.push({x:GRID[i][0],y:GRID[i][1]}); n++; }
+/* ===== колода: конечная проективная плоскость порядка 5 =====
+   31 карта по 6 символов, у любых двух карт ровно один общий символ.
+   Точки плоскости — символы, прямые — карты. Считается, а не хранится:
+   так гарантия «ровно одно совпадение» держится на математике, а не
+   на аккуратности набора. */
+/* SIM-START */
+var ORDER=5;
+function buildDeck(){
+  var n=ORDER, d=[], m, b, x, c, y;
+  for(m=0;m<n;m++) for(b=0;b<n;b++){
+    var card=[];
+    for(x=0;x<n;x++) card.push(x*n+((m*x+b)%n));
+    card.push(n*n+m);
+    d.push(card);
   }
-  return n;
-}
-
-/* ===== ход соперника ===== */
-function chooseMove(){
-  var free=[],i,p;
-  for(i=0;i<GRID.length;i++) if(isFree(GRID[i][0],GRID[i][1],balls)) free.push(GRID[i]);
-
-  if(free.length){
-    /* последний магнит — просто выкладываем и выигрываем */
-    if(mode===0 || hand[2]===1) return jitter(free[(Math.random()*free.length)|0]);
-    var list=free.length>90?free.filter(function(){return Math.random()<90/free.length;}):free;
-    if(!list.length) list=free;
-    var best=[],bs=-1e9;
-    for(i=0;i<list.length;i++){
-      p=list[i];
-      var n=capacity(balls.concat([{x:p[0],y:p[1]}]));
-      /* хочу оставить чётное число мест: тогда последнее свободное достанется мне */
-      var sc=(n%2===0?60:0)-n*4;
-      if(sc>bs+1e-9){bs=sc;best=[p];} else if(Math.abs(sc-bs)<1e-9) best.push(p);
-    }
-    return jitter(best[(Math.random()*best.length)|0]);
+  for(c=0;c<n;c++){
+    var v=[];
+    for(y=0;y<n;y++) v.push(c*n+y);
+    v.push(n*n+n);
+    d.push(v);
   }
-
-  /* свободных мест нет — слипание неизбежно, выбираем наименьшее зло */
-  if(mode===0){
-    var mk=1e9,pool=[];
-    for(i=0;i<GRID.length;i++){
-      var k0=pulledBy(GRID[i][0],GRID[i][1],balls).length;
-      if(k0<mk){mk=k0;pool=[GRID[i]];} else if(k0===mk) pool.push(GRID[i]);
-    }
-    return jitter(pool[(Math.random()*pool.length)|0]);
-  }
-  var lst=GRID.length>90?GRID.filter(function(){return Math.random()<90/GRID.length;}):GRID;
-  var b2=[],s2=-1e9;
-  for(i=0;i<lst.length;i++){
-    p=lst[i];
-    var cap=pulledBy(p[0],p[1],balls);
-    var rest=balls.filter(function(b){return cap.indexOf(b)<0;});
-    var m=capacity(rest);
-    /* забрать поменьше и оставить нечётное число мест — первый ход по ним мой */
-    var s3=-cap.length*10+(m%2===1?18:0)-m*2;
-    if(s3>s2+1e-9){s2=s3;b2=[p];} else if(Math.abs(s3-s2)<1e-9) b2.push(p);
-  }
-  return jitter(b2[(Math.random()*b2.length)|0]);
-}
-/* лёгкий сдвиг, чтобы ходы не ложились по сетке */
-function jitter(p){
-  var x=p[0]+(Math.random()-.5)*0.03, y=p[1]+(Math.random()-.5)*0.03;
-  var d=Math.sqrt(x*x+y*y);
-  if(d>LIM){ x=x/d*LIM; y=y/d*LIM; }
-  if(pulledBy(x,y,balls).length!==pulledBy(p[0],p[1],balls).length) return {x:p[0],y:p[1]};
-  return {x:x,y:y};
-}
-
-/* ===== отрисовка ===== */
-function fitWell(){
-  var st=wellEl.parentNode;
-  var s=Math.min(st.clientWidth,st.clientHeight)-40;
-  if(s>316) s=316;
-  if(s<150) s=150;
-  wellEl.style.width=s+'px';
-  wellEl.style.height=s+'px';
-}
-var fitTimer=null;
-function fitWellDebounced(){
-  clearTimeout(fitTimer);
-  fitTimer=setTimeout(fitWell,80);
-}
-window.addEventListener('resize',fitWellDebounced);
-window.addEventListener('orientationchange',function(){ setTimeout(fitWell,120); });
-
-function pct(v){ return ((v+1)/2*100)+'%'; }
-function makeBall(x,y,p,animate){
-  var d=document.createElement('div');
-  d.className='ball p'+p+(animate?' drop':'');
-  d.style.left=pct(x); d.style.top=pct(y);
-  wellEl.appendChild(d);
+  var inf=[]; for(m=0;m<=n;m++) inf.push(n*n+m);
+  d.push(inf);
   return d;
 }
-function tap(v,kind){ FX.fire(v,kind); }
-/* ---------- имена игроков ---------- */
-/* Своё имя и имя друга лежат в общей памяти приложения, имя сетевого
-   соперника приходит из комнаты. Пусто — показываем как раньше. */
-function who(){
-  var p=DP.names();
-  if(mode===3){
-    var me=p.me||'Вы', them=NET.oppName||'Соперник';
-    return net.seat===2?[them,me]:[me,them];
-  }
-  if(mode===2) return [p.me||'Красные', p.friend||'Жёлтые'];
-  return [p.me||'Вы','Соперник'];
+function common(a,b){
+  for(var i=0;i<a.length;i++) if(b.indexOf(a[i])>-1) return a[i];
+  return -1;
 }
-/* настоящее ли имя у стороны — от этого зависит, как назвать победителя */
-function named(i){
-  var p=DP.names();
-  if(mode===3) return i===net.seat ? !!p.me : !!NET.oppName;
-  if(mode===2) return i===1 ? !!p.me : !!p.friend;
-  return false;
-}
-function names(){ return who(); }
-/* сейчас не наша очередь: против ИИ это второй игрок, по сети — чужое место */
-function notMine(){
-  if(mode===3) return turn!==net.seat;
-  return mode<2 && turn===2;
-}
-function sideWord(){ return turn===1?'красных':'жёлтых'; }
+/* SIM-END */
+var DECK=buildDeck();     /* 31 карта */
 
-function paint(){
-  scoreEl.classList.toggle('p2',turn===2);
-  sideEl[1].classList.toggle('off',turn!==1||over);
-  sideEl[2].classList.toggle('off',turn!==2||over);
-  var n=names();
-  nameEl[1].textContent=n[0];
-  nameEl[2].textContent=n[1];
-  numEl[1].textContent=hand[1];
-  numEl[2].textContent=hand[2];
-  if(!aiming) say(idleHint());
-}
-function say(t,tone){
-  hintEl.textContent=t;
-  hintEl.className='hint'+(tone?' '+tone:'');
-}
-function bump(p){
-  sideEl[p].classList.add('bump');
-  setTimeout(function(){ sideEl[p].classList.remove('bump'); },300);
-}
-function plural(n){
-  var a=n%10,b=n%100;
-  if(a===1&&b!==11) return n+' магнит';
-  if(a>=2&&a<=4&&(b<12||b>14)) return n+' магнита';
-  return n+' магнитов';
-}
-
-/* ===== прицел ===== */
-function fromEvent(e){
-  var r=wellEl.getBoundingClientRect();
-  var x=((e.clientX-r.left)/r.width)*2-1;
-  var y=((e.clientY-r.top)/r.height)*2-1;
-  var d=Math.sqrt(x*x+y*y);
-  if(d>LIM){ x=x/d*LIM; y=y/d*LIM; }
-  return {x:x,y:y,inside:e.clientX>=r.left-30&&e.clientX<=r.right+30&&e.clientY>=r.top-30&&e.clientY<=r.bottom+30};
-}
-function showAim(p){
-  ghostEl.className='ghost on p'+turn;
-  ghostEl.style.left=pct(p.x); ghostEl.style.top=pct(p.y);
-  ringEl.style.left=pct(p.x); ringEl.style.top=pct(p.y);
-  var hit=pulledBy(p.x,p.y,balls);
-  ringEl.className='ring on'+(hit.length?' hot':'');
-  balls.forEach(function(b){ b.el.classList.toggle('pulled',hit.indexOf(b)>=0); });
-  if(hit.length) say('Слипнется, заберёте '+plural(hit.length+1),'warn');
-  else say('Свободно — магнит останется на арене','good');
-}
-function idleHint(){
-  if(over) return '';
-  if(mode===3) return turn===net.seat?'Ваш ход':'Ход соперника';
-  if(!hinted) return 'Ведите пальцем — кольцо покажет поле магнита';
-  if(mode===2) return 'Ход '+sideWord();
-  return turn===2?'Соперник выбирает место':'Ваш ход';
-}
-function clearAim(){
-  aiming=false;
-  ghostEl.className='ghost';
-  ringEl.className='ring';
-  balls.forEach(function(b){ b.el.classList.remove('pulled'); });
-  say(idleHint());
-}
-
-wellEl.addEventListener('pointerdown',function(e){
-  if(over){ scrim.classList.add('on'); sheet.classList.add('on'); return; }
-  if(locked) return;
-  if(notMine()) return;
-  aiming=true;
-  wellEl.setPointerCapture(e.pointerId);
-  showAim(fromEvent(e));
-  e.preventDefault();
-});
-wellEl.addEventListener('pointermove',function(e){
-  if(!aiming) return;
-  showAim(fromEvent(e));
-  e.preventDefault();
-});
-wellEl.addEventListener('pointerup',function(e){
-  if(!aiming) return;
-  var p=fromEvent(e);
-  clearAim();
-  if(!p.inside){ say('Ход отменён'); return; }
-  hinted=true;
-  var me=turn;
-  if(play(p.x,p.y,turn) && mode===3) NET.send([p.x,p.y],3-me);   /* ходы строго по очереди */
-});
-wellEl.addEventListener('pointercancel',function(){ if(aiming) clearAim(); });
-
-/* ===== ход ===== */
-function play(x,y,p){
-  if(over||locked) return false;
-  return doPlay(x,y,p);
-}
-/* сам ход без проверки запоров: сюда приходят и свои ходы, и ходы соперника */
-function doPlay(x,y,p){
-  var hit=pulledBy(x,y,balls), s=session;
-  locked=true; plies++;
-
-  if(!hit.length){
-    balls.push({x:x,y:y,p:p,el:makeBall(x,y,p,true)});
-    hand[p]--;
-    tap(8);
-    bump(p);
-    paint();
-    if(hand[p]===0){ finish(p); return true; }
-    setTimeout(function(){ if(s!==session) return; locked=false; nextTurn(); },260);
-    return true;
-  }
-
-  /* слипание: новый магнит + всё, что он притянул */
-  var lead={x:x,y:y,p:p,el:makeBall(x,y,p,true)};
-  var clump=hit.concat([lead]);
-  balls=balls.filter(function(b){ return hit.indexOf(b)<0; });
-  tap([10,50,22]);
-
-  /* притянутые подъезжают вплотную к новому и перекрашиваются в цвет забравшего */
-  setTimeout(function(){
-    if(s!==session) return;
-    hit.forEach(function(b){
-      var dx=b.x-x, dy=b.y-y, d=Math.sqrt(dx*dx+dy*dy)||1;
-      b.el.style.left=pct(x+dx/d*BALL*2); b.el.style.top=pct(y+dy/d*BALL*2);
-      b.el.className='ball p'+p+' pulled';
-    });
-  },30);
-
-  /* и всей горстью уезжают в руку игрока */
-  setTimeout(function(){
-    if(s!==session){ dropClump(clump); return; }
-    var tr=sideEl[p].getBoundingClientRect();
-    var tx=tr.left+tr.width/2, ty=tr.top+tr.height/2;
-    clump.forEach(function(b,i){
-      var br=b.el.getBoundingClientRect();
-      var dx=tx-(br.left+br.width/2), dy=ty-(br.top+br.height/2);
-      b.el.style.transitionDelay=(i*36)+'ms';
-      b.el.classList.add('fly');
-      b.el.style.transform='translate(-50%,-50%) translate('+dx+'px,'+dy+'px) scale(.28)';
-    });
-    setTimeout(function(){
-      dropClump(clump);
-      if(s!==session) return;
-      hand[p]+=hit.length;
-      bump(p);
-      paint();
-      liveEl.textContent='Слиплись '+plural(clump.length)+', уходят в руку';
-      locked=false;
-      nextTurn();
-    },520+clump.length*36);
-  },430);
-  return true;
-}
-
-function dropClump(list){
-  list.forEach(function(b){ if(b.el&&b.el.parentNode) b.el.parentNode.removeChild(b.el); });
-}
-function nextTurn(){
-  if(over) return;
-  turn=3-turn;
-  paint();
-  if(mode<2 && turn===2){
-    locked=true;
-    var s=session;
-    setTimeout(function(){
-      if(s!==session||over) return;
-      var mv=chooseMove();
-      locked=false;
-      play(mv.x,mv.y,2);
-    },520);
-  } else {
-    liveEl.textContent='Ход '+sideWord();
-  }
-}
-
-/* ===== итог ===== */
-/* [для «Красные/Жёлтые …» , для «Вы …»] */
+/* [для «Красные/Жёлтые …», для «Вы …», для имени] */
 var FORFEIT=[
   ['моют посуду','моете посуду','моет посуду'],
   ['выносят мусор','выносите мусор','выносит мусор'],
@@ -813,7 +543,270 @@ var FORFEIT=[
   ['три раза говорят «ты сегодня сильнее»','три раза говорите «ты сегодня сильнее»','три раза говорит «ты сегодня сильнее»'],
   ['делают победителю комплимент','делаете победителю комплимент','делает победителю комплимент']
 ];
+
+/* ===== состояние ===== */
+function $(id){ return document.getElementById(id); }
+var app=$('app'), stage=$('stage'), hint=$('hint'), liveEl=$('live');
+var zTop=$('zTop'), zBot=$('zBot'), cTop=$('cTop'), cBot=$('cBot'), cMid=$('cMid');
+var tagTop=$('tagTop'), tagBot=$('tagBot'), countEl=$('count'), leftEl=$('left');
+var scrim=$('scrim'), sheet=$('sheet'), medal=$('medal'), sTitle=$('sheetTitle'), sText=$('sheetText');
+var forfeitEl=$('forfeit'), ftextEl=$('ftext');
+
+var mode=0;                 /* 0 легко, 1 сложно, 2 вдвоём, 3 по сети */
+var net={seat:1,round:0};
+var hand=[0,0];             /* номер карты (в DECK) у стороны 1 и 2 */
+var pile=[], k=0;           /* стопка в центре и сколько из неё уже разобрано */
+var score=[0,0];
+var lock=true, anim=false, over=true;
+var frozen=[0,0];           /* до какого момента сторона наказана за промах */
+var pending=0;              /* по сети: мы отправили заявку и ждём, чья она */
+var plies=0;                /* сколько ходов по сети разобрано — по нему net.js сверяется */
+var session=0, timers=[], aiTimer=0;
 var lastForfeit=-1, loserSide=0;
+var lay={};                 /* раскладка символов на каждой нарисованной карте */
+
+function haptic(v,kind){ FX.fire(v,kind); }
+function later(fn,ms){ var s=session; timers.push(setTimeout(function(){ if(s===session) fn(); },ms)); }
+function stop(){ session++; timers.forEach(clearTimeout); timers=[]; clearTimeout(aiTimer); }
+function duo(){ return mode>=2; }
+
+/* ---------- имена игроков ---------- */
+function who(){
+  var p=DP.names();
+  if(mode===3){
+    var me=p.me||'Вы', them=NET.oppName||'Соперник';
+    return net.seat===2?[them,me]:[me,them];
+  }
+  if(mode===2) return [p.me||'Красные', p.friend||'Жёлтые'];
+  return [p.me||'Вы','ИИ'];
+}
+function named(i){
+  var p=DP.names();
+  if(mode===3) return i===net.seat ? !!p.me : !!NET.oppName;
+  if(mode===2) return i===1 ? !!p.me : !!p.friend;
+  return false;
+}
+/* какая сторона внизу экрана — та, что держит телефон */
+function mySide(){ return mode===3 ? net.seat : 1; }
+function oppSide(){ return 3-mySide(); }
+
+/* ===== рисование карты ===== */
+/* Шесть мест: одно в середине и пять по кругу. Раскладка крутится целиком,
+   а каждый символ — ещё и сам по себе, и размер у всех свой: как в
+   настоящей колоде, узнавать символ приходится в любом повороте. */
+function layout(card){
+  var turn=Math.random()*360, order=card.slice(), i, out=[];
+  for(i=order.length-1;i>0;i--){ var j=(Math.random()*(i+1))|0, t=order[i]; order[i]=order[j]; order[j]=t; }
+  for(i=0;i<order.length;i++){
+    var x=0,y=0,sz;
+    if(i===0) sz=42+Math.random()*10;
+    else{
+      var a=(turn+(i-1)*72)*Math.PI/180;
+      x=Math.cos(a)*62; y=Math.sin(a)*62;
+      sz=47+Math.random()*14;
+    }
+    out.push({s:order[i],x:x,y:y,r:Math.random()*360,k:sz/24});
+  }
+  return out;
+}
+function symSvg(s){ return SYM[s][1]; }
+function paintCard(el,cardNo,keep){
+  if(cardNo<0){ el.innerHTML=''; lay[el.id]=null; return; }
+  var L = keep && lay[el.id] && lay[el.id].no===cardNo ? lay[el.id].items : layout(DECK[cardNo]);
+  lay[el.id]={no:cardNo,items:L};
+  var h='<svg viewBox="-100 -100 200 200" aria-hidden="true">';
+  L.forEach(function(it){
+    h+='<g transform="translate('+it.x.toFixed(1)+' '+it.y.toFixed(1)+') rotate('+it.r.toFixed(0)+') scale('+it.k.toFixed(3)+')">'+
+       '<g class="sy '+SYM[it.s][0]+'" data-s="'+it.s+'" transform="translate(-12 -12)">'+
+       '<circle class="hit" cx="12" cy="12" r="12"/>'+symSvg(it.s)+'</g></g>';
+  });
+  el.innerHTML=h+'</svg>';
+  el.setAttribute('aria-label','Карта: '+DECK[cardNo].map(function(s){ return NAMES[s]; }).join(', '));
+}
+function flash(el,s,cls){
+  var g=el.querySelector('.sy[data-s="'+s+'"]');
+  if(!g) return;
+  g.classList.remove(cls); void g.getBoundingClientRect(); g.classList.add(cls);
+}
+/* какой символ под пальцем: ближайший к точке касания в координатах карты */
+function pick(el,e){
+  var svg=el.querySelector('svg'); if(!svg||!lay[el.id]) return -1;
+  var m=svg.getScreenCTM(); if(!m) return -1;
+  var p=svg.createSVGPoint(); p.x=e.clientX; p.y=e.clientY;
+  var q=p.matrixTransform(m.inverse()), best=-1, bd=1e9;
+  lay[el.id].items.forEach(function(it){
+    var dx=q.x-it.x, dy=q.y-it.y, d=dx*dx+dy*dy, lim=it.k*14;
+    if(d<bd && d<lim*lim){ bd=d; best=it.s; }
+  });
+  return best;
+}
+
+/* ===== размеры ===== */
+/* Три карты делят высоту экрана. Вдвоём все три равны — у каждого своя
+   половина стола. Против ИИ и по сети карта соперника только для вида,
+   поэтому мельче, а место уходит своей карте и центральной. */
+function fit(){
+  var r=stage.getBoundingClientRect();
+  if(!r.height) return;
+  var fixed=20+5+20+5+16+4+10;               /* подписи, счётчик стопки, зазоры */
+  var W=r.width-8, d, ds;
+  if(mode===2){ d=Math.min((r.height-fixed)/3, W*.9); ds=d; }
+  else{ d=Math.min((r.height-fixed)/2.55, W*.9); ds=d*.55; }
+  d=Math.max(110,Math.floor(d)); ds=Math.max(70,Math.floor(ds));
+  stage.style.setProperty('--d',d+'px');
+  stage.style.setProperty('--ds',ds+'px');
+}
+var fitT=0;
+addEventListener('resize',function(){ clearTimeout(fitT); fitT=setTimeout(fit,80); });
+
+function say(t,good){ hint.textContent=t; hint.classList.toggle('good',!!good); if(t) liveEl.textContent=t; }
+function el(side){ return side===mySide() ? cBot : cTop; }
+function zoneOf(side){ return side===mySide() ? zBot : zTop; }
+
+function paintTags(){
+  var w=who(), me=mySide(), op=oppSide();
+  $('nameBot').textContent=w[me-1];   $('numBot').textContent=score[me-1];
+  $('nameTop').textContent=w[op-1];   $('numTop').textContent=score[op-1];
+  tagBot.className='tag s'+me; tagTop.className='tag s'+op;
+  var n=pile.length-k;
+  leftEl.textContent = over ? '' : 'В стопке '+n;
+}
+function baseHint(){
+  if(mode===2) return '';
+  return 'Найдите общий символ и нажмите его на своей карте';
+}
+
+/* ===== партия ===== */
+function deal(){
+  stop();
+  closeSheet();
+  /* по сети тасуем общим генератором комнаты — иначе у игроков разные карты */
+  var rnd=(mode===3 && NET.rng) ? NET.rng : Math.random;
+  var order=[], i;
+  for(i=0;i<DECK.length;i++) order.push(i);
+  for(i=order.length-1;i>0;i--){ var j=Math.floor(rnd()*(i+1)), t=order[i]; order[i]=order[j]; order[j]=t; }
+  hand=[order[0],order[1]]; pile=order.slice(2); k=0;
+  score=[0,0]; frozen=[0,0]; pending=0; plies=0; over=false; lock=true; anim=true;
+  zTop.classList.remove('miss','frozen'); zBot.classList.remove('miss','frozen');
+  cBot.className='dc me s'+mySide();
+  cTop.className='dc s'+oppSide()+(mode===2?' me':' small');
+  cMid.className='dc back';
+  paintCard(cBot,hand[mySide()-1]);
+  paintCard(cTop,hand[oppSide()-1]);
+  paintCard(cMid,pile[0]);
+  paintTags(); fit();
+  say(mode===2?'':'Приготовьтесь');
+  /* отсчёт: центральная карта открывается для обоих одновременно */
+  var n=3;
+  (function tick(){
+    if(n>0){
+      countEl.textContent=n; countEl.classList.remove('on'); void countEl.offsetWidth; countEl.classList.add('on');
+      haptic(12,'tick'); n--; later(tick,520); return;
+    }
+    countEl.classList.remove('on');
+    cMid.className='dc pop';
+    haptic(9); lock=false; anim=false;
+    say(baseHint());
+    thinkAI();
+  })();
+}
+
+/* Тап по своей карте. Верный символ — заявка на центральную карту;
+   неверный — секунда штрафа, чтобы не выигрывать, стуча по всему подряд. */
+function tapCard(side,e){
+  if(lock||anim||over) return;
+  if(Date.now()<frozen[side-1]) return;
+  if(mode===3 && pending) return;
+  var cardEl=el(side), s=pick(cardEl,e);
+  if(s<0) return;
+  if(DECK[pile[k]].indexOf(s)<0){ miss(side,cardEl,s); return; }
+  if(mode===3){
+    /* Кто первый — решает сервер: заявки обоих ложатся в один список по
+       времени прихода, и у обоих телефонов одинаково выигрывает первая.
+       Поэтому свою заявку не разыгрываем сразу, а ждём её обратно. */
+    var kk=k;
+    pending=kk+1;
+    flash(cardEl,s,'tap'); haptic(6);
+    NET.send([net.seat,kk,s]);
+    later(function(){ if(pending===kk+1) pending=0; },2500);
+    return;
+  }
+  claim(side,k,s,false);
+}
+function miss(side,cardEl,s){
+  frozen[side-1]=Date.now()+1100;
+  var z=zoneOf(side);
+  z.classList.remove('miss'); void z.offsetWidth; z.classList.add('miss','frozen');
+  flash(cardEl,s,'tap');
+  haptic(10,'error');
+  if(mode!==2) say('Мимо — секунда штрафа');
+  later(function(){ z.classList.remove('miss','frozen'); if(!over && mode!==2) say(baseHint()); },1100);
+}
+
+/* Единственный путь, которым карта переходит к игроку: и свой тап, и ИИ,
+   и ход по сети. Заявка на уже разобранную карту (соперник успел первым)
+   просто не проходит — одинаково на обоих телефонах. */
+function claim(side,kk,s,quick){
+  if(over || kk!==k) return false;
+  if(side!==1 && side!==2) return false;
+  if(DECK[pile[k]].indexOf(s)<0 || DECK[hand[side-1]].indexOf(s)<0) return false;
+  clearTimeout(aiTimer);
+  if(side===mySide()) pending=0;
+  var owner=el(side), got=pile[k];
+  function land(){
+    hand[side-1]=got; score[side-1]++; k++;
+    lay[owner.id]=lay.cMid;                     /* карта ляжет ровно так, как лежала в центре */
+    paintCard(owner,got,true);
+    cMid.classList.remove('fly'); cMid.style.transform='';
+    if(k<pile.length){ paintCard(cMid,pile[k]); cMid.className='dc'+(quick?'':' pop'); }
+    else { paintCard(cMid,-1); cMid.className='dc back'; }
+    paintTags();
+    if(k>=pile.length){ finish(); return; }
+  }
+  if(quick){ land(); return true; }
+
+  anim=true;
+  flash(owner,s,'win'); flash(cMid,s,'win');
+  var mineWin = side===mySide();
+  haptic(mineWin||mode===2 ? 14 : 8);
+  if(mode===2) say('');
+  else say(mineWin ? 'Ваша! Символ — '+NAMES[s] : (mode===3?'Соперник успел первым':'ИИ успел первым'), mineWin);
+  later(function(){
+    var a=cMid.getBoundingClientRect(), b=owner.getBoundingClientRect();
+    var dx=(b.left+b.width/2)-(a.left+a.width/2), dy=(b.top+b.height/2)-(a.top+a.height/2);
+    cMid.classList.add('fly');
+    cMid.style.transform='translate('+dx+'px,'+dy+'px) scale('+(b.width/a.width).toFixed(3)+')';
+  },380);
+  later(function(){
+    if(mode===2 && side!==mySide()){
+      /* верхняя половина перевёрнута: чтобы карта легла на место без рывка,
+         разворачиваем её раскладку на те же 180 градусов в обратную сторону */
+      (lay.cMid.items||[]).forEach(function(it){ it.x=-it.x; it.y=-it.y; it.r=(it.r+180)%360; });
+    }
+    land();
+    anim=false;
+    if(!over){ if(mode!==2) later(function(){ if(!over && !anim) say(baseHint()); },900); thinkAI(); }
+  },760);
+  return true;
+}
+
+/* ===== ИИ ===== */
+/* Он «ищет» совпадение столько, сколько искал бы человек: лёгкий —
+   неторопливо, сложный — быстро, но не мгновенно, иначе играть незачем. */
+function thinkAI(){
+  if(mode>1 || over) return;
+  clearTimeout(aiTimer);
+  var ms = mode===0 ? 3600+Math.random()*3400 : 1700+Math.random()*1500;
+  var s0=session, kk=k;
+  aiTimer=setTimeout(function(){
+    if(s0!==session || over || k!==kk) return;
+    if(anim||lock){ thinkAI(); return; }
+    var s=common(DECK[hand[1]],DECK[pile[k]]);
+    claim(2,k,s,false);
+  },ms);
+}
+
+/* ===== итог ===== */
 function rollForfeit(){
   var i;
   do{ i=(Math.random()*FORFEIT.length)|0; } while(i===lastForfeit&&FORFEIT.length>1);
@@ -828,17 +821,6 @@ forfeitEl.addEventListener('click',function(){
   forfeitEl.classList.add('roll');
   setTimeout(function(){ ftextEl.textContent=rollForfeit(); forfeitEl.classList.remove('roll'); },170);
 });
-
-function finish(p){
-  over=true; locked=true;
-  if(mode===3) NET.result(p);
-  wins[p]++;
-  paint();
-  var mineWin = mode===3 ? p===net.seat : p===1;
-  say(mode===2?('Победили '+names()[p-1].toLowerCase()):(mineWin?'Вы выиграли':'Соперник выиграл'),mineWin?'good':null);
-  tap([14,60,26]);
-  setTimeout(function(){ openSheet(p); },560);
-}
 /* ---------- общая память приложения dvoeplay ---------- */
 /* Тот же блок стоит в index.html и во всех играх серии. Всё в try/catch:
    если хранилище недоступно, игра работает как раньше, просто без истории. */
@@ -1111,126 +1093,119 @@ var FX=(function(){
 
   return {fire:fire,play:play,boot:boot,forget:forget,tune:tune};
 })();
-
-
-function openSheet(p){
+function finish(){
+  over=true; lock=true; anim=false;
+  clearTimeout(aiTimer);
+  var w = score[0]>score[1] ? 1 : (score[1]>score[0] ? 2 : 0);
+  var res=score[0]+' : '+score[1];
+  if(mode===3) NET.result(w);
   /* для истории сетевая партия — это игра вдвоём: есть ничьи, не соло */
-  DP.save('magnitniy-boy',{win:p||0,mode:mode===3?2:mode,
-    note:(mode===3?'По сети · ':'')+'Счёт '+wins[1]+' : '+wins[2]});
-  var n=names();
-  medal.className='medal '+(p===1?'a':'b');
-  document.getElementById('sheetTitle').textContent =
-    mode===2 ? (named(p) ? 'Победа: '+n[p-1] : 'Победили '+(p===1?'красные':'жёлтые'))
-    : mode===3 ? (p===net.seat ? 'Вы выиграли'
-                  : (named(p) ? 'Победа: '+n[p-1] : 'Соперник выиграл'))
-    : (p===1?'Вы выиграли':'Соперник выиграл');
-  document.getElementById('sheetText').textContent =
-    mode===2 ? 'Все десять выложены, счёт '+wins[1]+':'+wins[2]
-    : mode===3 ? 'Все десять выложены, счёт '+wins[1]+':'+wins[2]
-    : 'Счёт '+wins[1]+':'+wins[2]+' — '+(mode===0?'лёгкий':'сложный')+' соперник';
-  /* вдвоём — фант проигравшему цвету; против соперника — только когда проиграли вы */
-  loserSide=3-p;
+  DP.save('dobble',{win:w,mode:mode===3?2:mode,
+    note:(mode===3?'По сети · ':'')+'Карт '+score[0]+' : '+score[1]});
+  medal.className='medal '+(w===1?'a':w===2?'b':'n');
+  if(!w){
+    sTitle.textContent='Ничья';
+    sText.textContent='Поровну, '+res;
+  }else if(mode===2){
+    sTitle.textContent = named(w) ? 'Победа: '+who()[w-1] : ((w===1?'Красные':'Жёлтые')+' выиграли');
+    sText.textContent='Карт '+res;
+  }else if(mode===3){
+    sTitle.textContent = w===net.seat ? 'Вы выиграли'
+      : (named(w) ? 'Победа: '+who()[w-1] : 'Соперник выиграл');
+    sText.textContent='Карт '+res;
+  }else{
+    sTitle.textContent = w===1 ? 'Вы выиграли' : 'ИИ выиграл';
+    sText.textContent='Карт '+res+' — '+(mode===0?'лёгкий':'сложный')+' соперник';
+  }
   /* фант достаётся проигравшему: вдвоём видят оба, иначе только он сам */
-  var showForfeit = mode===2 ? true : (mode===3 ? p!==net.seat : p===2);
-  if(showForfeit){ ftextEl.textContent=rollForfeit(); forfeitEl.classList.add('on'); }
-  else forfeitEl.classList.remove('on');
-  scrim.classList.add('on'); sheet.classList.add('on');
+  var showForfeit = mode===2 ? w>0 : (mode===3 ? (w>0 && w!==net.seat) : w===2);
+  if(showForfeit){
+    if(mode===2) loserSide = w===1 ? 2 : 1;
+    ftextEl.textContent=rollForfeit();
+    forfeitEl.classList.add('on');
+  }else forfeitEl.classList.remove('on');
+  var mine = mode===2 ? true : w===mySide();
+  say(!w?'Ничья':(mode===2?'':(mine?'Победа':'Поражение')));
+  paintTags();
+  haptic(mine&&w ? [14,50,22] : 12);
+  later(function(){ scrim.classList.add('on'); sheet.classList.add('on'); },700);
 }
 function closeSheet(){ scrim.classList.remove('on'); sheet.classList.remove('on'); }
 
 /* ===== заставка меню ===== */
-var miniEl=document.getElementById('mini');
-var MINI=[[16,'y',0],[42,'r',300],[86,'y',600],[64,'r',1040]];
-var SNAP=[[1,48],[2,80]];
-var miniTimers=[];
+/* Две случайные карты колоды, и их единственный общий символ вспыхивает
+   на обеих — это и есть вся игра за три секунды. */
+var miniL=$('miniL'), miniR=$('miniR'), miniT=[];
 function playMini(){
-  miniTimers=[];
-  miniEl.innerHTML='<div class="dish"></div>';
-  var els=[];
-  MINI.forEach(function(m,i){
-    miniTimers.push(setTimeout(function(){
-      var d=document.createElement('div');
-      d.className='d '+m[1];
-      d.style.left=m[0]+'%';
-      miniEl.appendChild(d);
-      els[i]=d;
-    },m[2]));
-  });
-  miniTimers.push(setTimeout(function(){
-    SNAP.forEach(function(q){ if(els[q[0]]) els[q[0]].style.left=q[1]+'%'; });
-  },1500));
-  miniTimers.push(setTimeout(function(){
-    [1,2,3].forEach(function(i){ if(els[i]) els[i].classList.add('gone'); });
-  },2000));
-  miniTimers.push(setTimeout(playMini,3400));
+  stopMini();
+  var a=(Math.random()*DECK.length)|0, b;
+  do{ b=(Math.random()*DECK.length)|0; } while(b===a);
+  paintCard(miniL,a); paintCard(miniR,b);
+  miniL.classList.remove('swap'); miniR.classList.remove('swap');
+  var s=common(DECK[a],DECK[b]);
+  miniT.push(setTimeout(function(){ flash(miniL,s,'win'); flash(miniR,s,'win'); },900));
+  miniT.push(setTimeout(function(){ miniL.classList.add('swap'); miniR.classList.add('swap'); },2900));
+  miniT.push(setTimeout(playMini,3250));
 }
-function stopMini(){ miniTimers.forEach(clearTimeout); miniTimers=[]; }
+function stopMini(){ miniT.forEach(clearTimeout); miniT=[]; }
 
-/* ===== партия и экраны ===== */
-function newGame(){
-  session++;
-  balls.forEach(function(b){ if(b.el.parentNode) b.el.parentNode.removeChild(b.el); });
-  balls=[]; hand=[0,START_HAND,START_HAND];
-  over=false; locked=false; hinted=false; plies=0;
-  if(mode===3) starter = net.round%2===0 ? 1 : 2;   /* очередь задаёт сервер */
-  else starter=3-starter;
-  turn=starter;
-  clearAim();
-  paint();
-  if(mode<2&&turn===2){
-    locked=true;
-    var s=session;
-    setTimeout(function(){
-      if(s!==session) return;
-      var mv=chooseMove(); locked=false; play(mv.x,mv.y,2);
-    },600);
-  }
-}
+/* ===== переходы ===== */
 function openGame(m){
-  mode=m; wins=[0,0,0]; starter=2;
+  mode=m; app.classList.add('playing'); stopMini(); closeSheet();
   document.body.classList.toggle('playing-net',m===3);
-  app.classList.add('playing'); stopMini(); closeSheet(); fitWell(); newGame();
+  $('game').classList.toggle('duo',m===2);
+  deal();
 }
 function goMenu(){
   if(NET.on) NET.leave();
   document.body.classList.remove('playing-net');
-  session++; over=true; locked=true;
-  closeSheet();
-  app.classList.remove('playing');
-  stopMini(); playMini();
+  stop(); closeSheet(); app.classList.remove('playing'); lock=true; over=true; anim=false;
+  playMini();
 }
-
 Array.prototype.forEach.call(document.querySelectorAll('.row'),function(r){
   r.addEventListener('click',function(){
-    var m=+r.getAttribute('data-mode');
+    var m=+r.dataset.mode;
     if(m===3) NET.open(); else openGame(m);
   });
 });
+/* касания — по pointerdown: на столе вдвоём жмут одновременно, и ждать
+   отпускания пальца значит отдать очко тому, кто быстрее убрал руку */
+cBot.addEventListener('pointerdown',function(e){ e.preventDefault(); tapCard(mySide(),e); });
+cTop.addEventListener('pointerdown',function(e){ if(mode!==2) return; e.preventDefault(); tapCard(oppSide(),e); });
+$('restart').addEventListener('click',function(){ if(mode!==3) deal(); });
+$('again').addEventListener('click',function(){
+  if(mode===3){ NET.rematch(); return; }          /* по сети раздача начинается по согласию обоих */
+  deal();
+});
 
 /* ---------- игра по сети ---------- */
-/* Вся механика — в общем net.js. Здесь только то, что знает игра:
-   ход — это место на поле, и ходы строго чередуются. */
+/* Вся механика — в общем net.js. Эта игра — первая в серии без очереди:
+   ходят оба одновременно, кто быстрее. Поэтому комната заводится в режиме
+   free: сервер не спрашивает, чей ход, а просто складывает заявки в один
+   список в порядке прихода, и этот список получают оба — вместе со своими
+   же заявками. Ход — [место, номер карты в стопке, символ]. Заявка на
+   карту, которую уже забрали, у обоих одинаково ничего не делает. */
 NET.init({
-  game:'magnitniy-boy',
-  title:'Магнитный бой',
+  game:'dobble',
+  title:'Доббль',
+  free:true,
   applied:function(){ return plies; },
+  busy:function(){ return anim; },
   begin:function(c){ net.seat=c.seat; net.round=c.round; openGame(3); },
-  round:function(c){ net.round=c.round; closeSheet(); newGame(); },
-  move:function(v){ if(!over) doPlay(v[0],v[1],turn); },
+  round:function(c){ net.round=c.round; closeSheet(); deal(); },
+  move:function(v,quick){
+    plies++;
+    if(Object.prototype.toString.call(v)!=='[object Array]') return;
+    var ok=claim(v[0]|0,v[1]|0,v[2]|0,!!quick);
+    if(!ok && (v[0]|0)===net.seat){ pending=0; }
+  },
   ended:goMenu
 });
-document.getElementById('restart').addEventListener('click',function(){ closeSheet(); newGame(); });
-document.getElementById('again').addEventListener('click',function(){
-  if(mode===3){ NET.rematch(); return; }          /* по сети раунд начинается по согласию обоих */
-  closeSheet(); setTimeout(newGame,180);
-});
-document.getElementById('toMenuBtn').addEventListener('click',goMenu);
-document.getElementById('toMenuTop').addEventListener('click',goMenu);
+$('toMenuBtn').addEventListener('click',goMenu);
+$('toMenuTop').addEventListener('click',goMenu);
 scrim.addEventListener('click',closeSheet);
 document.addEventListener('gesturestart',function(e){ e.preventDefault(); });
 
-fitWell();
-paint();
 playMini();
 })();
 </script>

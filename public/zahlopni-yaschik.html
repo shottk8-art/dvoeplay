@@ -78,7 +78,8 @@ if('serviceWorker' in navigator && location.protocol!=='file:'){
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Захлопни ящик — dvoeplay</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231C1C1E'/%3E%3Crect x='14' y='14' width='36' height='36' rx='9' fill='%23F5BE0A'/%3E%3Ccircle cx='23' cy='23' r='4' fill='%23E7362B'/%3E%3Ccircle cx='32' cy='32' r='4' fill='%23E7362B'/%3E%3Ccircle cx='41' cy='41' r='4' fill='%23E7362B'/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <style>
 :root{
   color-scheme:light;      /* поля ввода и полосы прокрутки тоже светлые */
@@ -1153,8 +1154,11 @@ function applyMove(sub){
     finishRound('shut');
     return;
   }
-  if(decided()){ later(820,function(){ finishRound('decided'); }); return; }
-  if(boardDead(openMask)){ later(760,function(){ finishRound('dead'); }); return; }
+  /* Итог объявляем с паузой, чтобы игрок увидел последний ход, — но играть
+     в эту паузу уже нельзя: успеешь бросить кубики, и у соперника, который
+     партию уже закрыл, этого броска не будет. Запираем сразу. */
+  if(decided()){ locked=true; later(820,function(){ finishRound('decided'); }); return; }
+  if(boardDead(openMask)){ locked=true; later(760,function(){ finishRound('dead'); }); return; }
   handing=true;
   later(760,function(){ startTurn(3-p); });
 }

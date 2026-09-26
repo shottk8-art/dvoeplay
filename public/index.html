@@ -79,7 +79,8 @@ if('serviceWorker' in navigator && location.protocol!=='file:'){
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>dvoeplay — игры для двоих</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3CclipPath id='c'%3E%3Ccircle cx='32' cy='32' r='31'/%3E%3C/clipPath%3E%3Cg clip-path='url(%23c)'%3E%3Crect width='32' height='64' fill='%23E7362B'/%3E%3Crect x='32' width='32' height='64' fill='%23F5BE0A'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <style>
 :root{
   color-scheme:light;      /* поля ввода и полосы прокрутки тоже светлые */
@@ -206,10 +207,10 @@ body{
   font-size:15px;font-weight:700;letter-spacing:-.2px;white-space:nowrap;
 }
 /* ---------- живые картинки в плашке ---------- */
-/* У каждой из восьми игр своя: плашка — витрина, и игра в ней должна
+/* У каждой из девяти игр своя: плашка — витрина, и игра в ней должна
    двигаться. Всё на CSS, без картинок и скриптов.
 
-   Два правила, которым подчиняются все восемь:
+   Два правила, которым подчиняются все девять:
    1. Имена классов с приставкой ha- — пространство имён в одностраничном
       файле общее, и короткие имена уже заняты.
    2. Кадр 0% и кадр 100% — это ПОЛНАЯ картинка, а не пустое поле. Тогда
@@ -350,6 +351,21 @@ body{
   58%,86%{transform:rotateX(0);background-color:rgba(255,255,255,.14);color:transparent}
   95%,100%{transform:rotateX(0);background-color:var(--yel-b);color:var(--ink)}
 }
+/* Доббль: две карты рядом, общий символ вспыхивает на обеих сразу */
+.ha-db .cd{width:72px;height:72px;border-radius:50%;background:#fff;box-shadow:0 6px 16px rgba(0,0,0,.34)}
+.ha-db .cd.a{left:0;top:6px;animation:dbfloat 5.4s ease-in-out infinite}
+.ha-db .cd.b{left:76px;top:30px;animation:dbfloat 5.4s ease-in-out .5s infinite}
+.ha-db b{border-radius:50%}
+.ha-db .p1{left:11px;top:13px;width:13px;height:13px;background:var(--yel-b)}
+.ha-db .p2{left:47px;top:47px;width:11px;height:11px;background:#1C1C1E;opacity:.22}
+.ha-db .hit{left:24px;top:38px;width:17px;height:17px;background:var(--red-b);
+  animation:dbhit 3.6s var(--spring) infinite}
+.ha-db .cd.b .p1{left:47px;top:45px}
+.ha-db .cd.b .p2{left:13px;top:15px}
+.ha-db .cd.b .hit{left:34px;top:16px}
+@keyframes dbfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes dbhit{0%,52%,100%{transform:scale(1)}66%{transform:scale(1.5)}80%{transform:scale(1.18)}}
+
 /* Рисунок для игр без собственной анимации в плашке. Поле квадратное:
    плиточная графика нарисована в квадрате, и в прямоугольнике она вылезала. */
 .hero-generic{position:absolute;right:20px;top:12px;width:112px;height:112px;display:grid;place-items:center}
@@ -409,6 +425,7 @@ body{
 .art-word svg{left:50%;top:26%;width:74%;transform:translateX(-50%);animation:float 6.2s ease-in-out infinite}
 .art-hang svg{left:50%;top:15%;width:50%;transform:translateX(-50%);animation:float 7.4s ease-in-out infinite}
 .art-box svg{left:50%;top:16%;width:62%;transform:translateX(-50%);animation:float 6.8s ease-in-out infinite}
+.art-spot svg{left:50%;top:20%;width:72%;transform:translateX(-50%);animation:swing 6.6s ease-in-out infinite}
 @keyframes float{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,-7px)}}
 @keyframes swing{0%,100%{transform:translate(-50%,0) rotate(-4deg)}50%{transform:translate(-50%,-5px) rotate(4deg)}}
 @keyframes floatr{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-8px) rotate(-2deg)}}
@@ -516,7 +533,7 @@ body{
   <div class="cont" id="cont" hidden></div>
 
   <div class="section"><h2>Все игры</h2><span id="count"></span></div>
-  <p class="netnote">Все восемь — вдвоём на одном телефоне, против ИИ или по сети, на двух телефонах</p>
+  <p class="netnote">Все девять — вдвоём на одном телефоне, против ИИ или по сети, на двух телефонах</p>
   <div class="bento" id="bento"></div>
 
   <p class="legal">dvoeplay<sup>&reg;</sup></p>
@@ -847,10 +864,10 @@ var GAMES=[
   {id:'5-bukv',          title:'5 букв',            desc:'Угадайте слово',                    full:'Угадайте слово из пяти букв за шесть попыток',        href:'5-bukv.html',           tone:'red',  art:'word',    ready:true},
   {id:'viselica',        title:'Быстрая виселица',  desc:'Слово на время',                    full:'Загадайте слово за 30 секунд и отгадывайте',          href:'viselica.html',         tone:'dark', art:'hang',    ready:true},
   {id:'zahlopni-yaschik',title:'Захлопни ящик',     desc:'Закрывайте числа',                  full:'Закрывайте числа суммой броска — ящик один на двоих', href:'zahlopni-yaschik.html', tone:'yel',  art:'box',     ready:true},
-  {id:'next',            title:'Девятая игра',      desc:'Скоро',                             full:'Скоро',                                               href:'',                      tone:'soon', art:'',        ready:false}
+  {id:'dobble',          title:'Доббль',            desc:'Кто первый найдёт',                 full:'У двух карт всегда один общий символ — найдите первым', href:'dobble.html',         tone:'red',  art:'spot',    ready:true}
 ];
 
-var FEATURED='zahlopni-yaschik';
+var FEATURED='dobble';
 var FEATURED_LABEL='Новое';
 var SUGGEST=['dvoeplay','matreshka','5-bukv'];   /* что предложить, пока истории нет */
 
@@ -863,7 +880,8 @@ var ICON={
   'dots-boxes':"<rect width='64' height='64' rx='14' fill='#1C1C1E'/><rect x='21' y='21' width='22' height='22' rx='5' fill='#F5BE0A'/><circle cx='20' cy='20' r='5.5' fill='#E7362B'/><circle cx='44' cy='20' r='5.5' fill='#E7362B'/><circle cx='20' cy='44' r='5.5' fill='#E7362B'/><circle cx='44' cy='44' r='5.5' fill='#E7362B'/>",
   '5-bukv':"<rect width='64' height='64' rx='14' fill='#1C1C1E'/><rect x='8' y='23' width='14' height='18' rx='4' fill='#E7362B'/><rect x='25' y='23' width='14' height='18' rx='4' fill='#F5BE0A'/><rect x='42' y='23' width='14' height='18' rx='4' fill='#E7362B'/>",
   'viselica':"<rect width='64' height='64' rx='14' fill='#1C1C1E'/><path d='M16 52V14h22' fill='none' stroke='#E7362B' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/><path d='M38 17v8' stroke='#F5BE0A' stroke-width='5' stroke-linecap='round'/><circle cx='38' cy='34' r='9' fill='none' stroke='#F5BE0A' stroke-width='6'/>",
-  'zahlopni-yaschik':"<rect width='64' height='64' rx='14' fill='#1C1C1E'/><rect x='14' y='14' width='36' height='36' rx='9' fill='#F5BE0A'/><circle cx='23' cy='23' r='4' fill='#E7362B'/><circle cx='32' cy='32' r='4' fill='#E7362B'/><circle cx='41' cy='41' r='4' fill='#E7362B'/>"
+  'zahlopni-yaschik':"<rect width='64' height='64' rx='14' fill='#1C1C1E'/><rect x='14' y='14' width='36' height='36' rx='9' fill='#F5BE0A'/><circle cx='23' cy='23' r='4' fill='#E7362B'/><circle cx='32' cy='32' r='4' fill='#E7362B'/><circle cx='41' cy='41' r='4' fill='#E7362B'/>",
+  'dobble':"<rect width='64' height='64' rx='14' fill='#1C1C1E'/><circle cx='24' cy='32' r='15' fill='#FFFFFF'/><circle cx='42' cy='32' r='15' fill='#FFFFFF' fill-opacity='.88'/><circle cx='19' cy='26' r='4.2' fill='#F5BE0A'/><circle cx='47' cy='38' r='4.2' fill='#F5BE0A'/><circle cx='26' cy='38' r='5' fill='#E7362B'/><circle cx='40' cy='26' r='5' fill='#E7362B'/>"
 };
 var TILE_ART={
   connect:"<svg viewBox='0 0 120 70'><circle cx='20' cy='46' r='17' fill='#E7362B'/><circle cx='56' cy='46' r='17' fill='#F5BE0A'/><circle cx='92' cy='46' r='17' fill='#E7362B'/><circle cx='56' cy='10' r='15.5' fill='none' stroke='#fff' stroke-opacity='.28' stroke-width='3'/></svg>",
@@ -873,7 +891,8 @@ var TILE_ART={
   dots:"<svg viewBox='0 0 70 70'><rect x='14' y='14' width='42' height='42' rx='8' fill='#E7362B'/><circle cx='12' cy='12' r='8' fill='#1C1C1E'/><circle cx='58' cy='12' r='8' fill='#1C1C1E'/><circle cx='12' cy='58' r='8' fill='#1C1C1E'/><circle cx='58' cy='58' r='8' fill='#1C1C1E'/></svg>",
   word:"<svg viewBox='0 0 110 40'><rect x='2' y='2' width='32' height='36' rx='7' fill='#fff'/><rect x='39' y='2' width='32' height='36' rx='7' fill='#1C1C1E'/><rect x='76' y='2' width='32' height='36' rx='7' fill='#F5BE0A'/></svg>",
   hang:"<svg viewBox='0 0 70 80' fill='none' stroke-linecap='round' stroke-linejoin='round'><path d='M12 76V8h30' stroke='#E7362B' stroke-width='9'/><path d='M42 8v11' stroke='#F5BE0A' stroke-width='7'/><circle cx='42' cy='34' r='14' stroke='#F5BE0A' stroke-width='8'/></svg>",
-  box:"<svg viewBox='0 0 80 70'><rect x='6' y='16' width='68' height='48' rx='10' fill='#1C1C1E'/><rect x='14' y='2' width='30' height='30' rx='8' fill='#fff'/><circle cx='22' cy='10' r='3.6' fill='#E7362B'/><circle cx='29' cy='17' r='3.6' fill='#E7362B'/><circle cx='36' cy='24' r='3.6' fill='#E7362B'/></svg>"
+  box:"<svg viewBox='0 0 80 70'><rect x='6' y='16' width='68' height='48' rx='10' fill='#1C1C1E'/><rect x='14' y='2' width='30' height='30' rx='8' fill='#fff'/><circle cx='22' cy='10' r='3.6' fill='#E7362B'/><circle cx='29' cy='17' r='3.6' fill='#E7362B'/><circle cx='36' cy='24' r='3.6' fill='#E7362B'/></svg>",
+  spot:"<svg viewBox='0 0 92 62'><circle cx='27' cy='31' r='28' fill='#fff'/><circle cx='65' cy='31' r='28' fill='#fff' fill-opacity='.9'/><circle cx='20' cy='21' r='7' fill='#F5BE0A'/><circle cx='30' cy='42' r='8' fill='#1C1C1E'/><circle cx='72' cy='41' r='7' fill='#F5BE0A'/><circle cx='60' cy='20' r='8' fill='#1C1C1E'/></svg>"
 };
 var HERO_ART={
   /* 4 в ряд: три фишки уже в ряду, четвёртая падает и достраивает его */
@@ -916,6 +935,12 @@ var HERO_ART={
   '5-bukv':'<div class="hero-art ha-5b" aria-hidden="true">'+
     cols(5,function(x,i){ return '<i class="t" style="left:'+x+'px;animation-delay:'+(i*0.11)+'s">'+
                                  'СЛОВО'.charAt(i)+'</i>'; },30)+
+  '</div>',
+
+  /* Доббль: две карты, и один и тот же символ вспыхивает на обеих */
+  'dobble':'<div class="hero-art ha-db" aria-hidden="true">'+
+    '<i class="cd a"><b class="p1"></b><b class="p2"></b><b class="hit"></b></i>'+
+    '<i class="cd b"><b class="p1"></b><b class="p2"></b><b class="hit"></b></i>'+
   '</div>',
 
   /* Быстрая виселица: виселица покачивается, буквы встают на места */
@@ -1084,7 +1109,7 @@ function renderBento(){
           '</a>';
   }
   document.getElementById('bento').innerHTML=html;
-  document.getElementById('count').textContent=ready+' из '+total;
+  document.getElementById('count').textContent = ready===total ? 'Все девять' : ready+' из '+total;
 }
 
 /* ---------- статистика ---------- */

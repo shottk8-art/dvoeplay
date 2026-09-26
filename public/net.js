@@ -19,7 +19,16 @@
    достаточно передать сам ход, а состояние поля каждый считает у себя.
    Там, где нужна общая случайность (колода, загаданное слово, броски
    кубиков), используется NET.rng — генератор от общего зерна комнаты,
-   одинаковый у обоих и свой на каждый раунд. */
+   одинаковый у обоих и свой на каждый раунд.
+
+   Режим без очереди (free: true в NET.init, с 26.09.2026 — «Доббль»).
+   Игры на скорость ходят одновременно, и спрашивать «чей ход» там нельзя.
+   Комната заводится с пометкой free: сервер принимает ход от любого из
+   двоих и кладёт его в общий список в порядке прихода. Свой ход в этом
+   режиме НЕ считается сразу и не разыгрывается у себя — он возвращается
+   с сервера вместе с чужими, на своём месте в списке. Только так оба
+   телефона видят одинаковый порядок заявок, и спор «кто первый» решается
+   одинаково у обоих. Остальные игры этот режим не затрагивает. */
 
 var NET = (function(){
   "use strict";
@@ -41,6 +50,16 @@ var NET = (function(){
      предыдущего, ломает поле. Поэтому ходы ждут здесь и уходят в игру по
      одному, как только она готова их принять. */
   var queue = [], feeder = 0;
+  /* Сколько ходов раунда мы уже знаем: свои отправленные плюс принятые от
+     сервера. Считает их сам модуль, и только вперёд. Раньше это число брали
+     у игры (`applied()`) — и стоило ей один ход не принять, как оно ехало
+     назад: сервер честно слал тот же хвост снова и снова, а на экране ходы
+     повторялись сами собой без конца. В режиме free свои ходы сюда не идут,
+     пока не вернутся с сервера. */
+  var known = 0;
+  var askew = 0;                  /* сколько опросов подряд счёт игры не сходится с нашим */
+  var fixes = 0;                  /* сколько раз за раунд уже лечили поле пересборкой */
+  var syncAt = 0;                 /* когда последний раз пересобирали раунд */
   var focusAt = 0;               /* отложенный подъём клавиатуры в поле кода */
   var againLabel = '';            /* родная подпись кнопки «играть снова» */
   var el = {};
@@ -51,6 +70,9 @@ var NET = (function(){
     rng: null, oppOnline: false, oppLeft: false,
     myName: '', oppName: ''
   };
+
+  /* режим без очереди: ходят оба сразу, порядок решает сервер */
+  function free(){ return !!(opt && opt.free); }
 
   /* Своё имя лежит в общей памяти приложения. Читаем её напрямую, а не
      через DP: блок DP объявлен внутри замыкания игры и снаружи не виден.
@@ -293,11 +315,19 @@ var NET = (function(){
     }, function(){ return { status: 0, body: { error: 'Нет связи с сервером' } }; });
   }
 
+  /* счёт ходов глазами игры — по нему видно, что у неё разъехалось поле */
   function applied(){
     try { return opt && opt.applied ? (opt.applied() | 0) : 0; } catch(e){ return 0; }
   }
-  /* сколько ходов раунда у нас уже есть: применённые плюс ждущие своей минуты */
-  function have(){ return applied() + queue.length; }
+  function have(){ return known; }
+  /* Игра не приняла ход или приняла дважды: её счёт разошёлся с нашим, и
+     поле у неё уже не то. Смотрим только в спокойную минуту — когда наша
+     очередь пуста, свои ходы отправлены и у игры не идёт анимация. */
+  function crooked(){
+    if (!api_.live || over) return false;
+    if (queue.length || outbox.length || busy()) return false;
+    return applied() !== known;
+  }
   /* игра сама говорит, можно ли ей сейчас отдать ход */
   function busy(){
     try { return !!(opt && opt.busy && opt.busy()); } catch(e){ return false; }
@@ -321,6 +351,9 @@ var NET = (function(){
     if (!api_.live) return still > 60000 ? 3000 : 1500;       /* лобби */
     if (over) return still > 30000 ? 2500 : 1200;             /* ждём реванша */
     if (hidden()) return 4000;                                /* на экран не смотрят */
+    /* без очереди чужой ход может прийти в любую секунду, а игра на скорость:
+       каждая лишняя доля секунды — это карта, увиденная позже соперника */
+    if (free()) return still > 60000 ? 2000 : 600;
     if (api_.turn && api_.turn === api_.seat){                /* ход наш, ждать нечего */
       return still > 60000 ? 4000 : 2600;
     }
@@ -384,18 +417,15 @@ var NET = (function(){
       return;
     }
     warn();
-    /* Очередь по мнению сервера отдаём игре КАЖДЫЙ раз, а не только когда
-       она изменилась. Игра сама решит, слушать сейчас или нет: если
-       поправку прислать однажды и она придёт в неподходящий миг (идёт
-       анимация, разбирается очередь ходов), её просто отбросят — и игра
-       останется с неверной очередью навсегда. */
-    if (api_.live && api_.turn) fire('turn', api_.turn, api_.turn !== wasTurn);
 
     if (v.round > api_.round){                /* оба согласились на реванш */
       outbox.length = 0;                      /* ходы прошлого раунда уже ни к чему */
       api_.round = v.round;
       over = false;
       queue.length = 0;                       /* ходы прошлого раунда уже не нужны */
+      known = 0;
+      askew = 0;
+      fixes = 0;
       clearTimeout(feeder);
       seedRound();
       resetAgain();
@@ -404,29 +434,58 @@ var NET = (function(){
     }
     /* Мы забежали вперёд сервера. Если в очереди лежат неотправленные ходы,
        то ровно на них он и отстаёт — это не рассинхрон, а ожидание связи:
-       пересобирать раунд нельзя, иначе свой же ход мигнёт и пропадёт. */
-    if (v.total < have() - outbox.length){ resync(); return; }
+       пересобирать раунд нельзя, иначе свой же ход мигнёт и пропадёт.
+       Без очереди свои ходы в `known` не входят вовсе, вычитать нечего. */
+    if (v.total < known - (free() ? 0 : outbox.length)){ resync(); return; }
     if (v.moves && v.moves.length){
-      var quick = v.moves.length < 2;         /* догоняем пачку — без анимации */
+      var quick = v.moves.length > 1;         /* догоняем пачку — без анимации */
       for (var i = 0; i < v.moves.length; i++){
-        if ((v.since + i) !== have()) continue;
+        if ((v.since + i) !== known) continue;
         queue.push({ v: v.moves[i], quick: quick });
+        known++;
       }
       drain();
     }
+    /* Очередь по мнению сервера отдаём игре КАЖДЫЙ раз, а не только когда
+       она изменилась: одноразовая поправка, пришедшая в неподходящий миг,
+       была бы отброшена, и игра осталась бы с неверной очередью навсегда.
+       Но только когда мы с сервером в одной точке: его `turn` — это мир
+       ПОСЛЕ всех его ходов, и пока мы эти ходы не разобрали, подсказка
+       говорит о будущем. Игра, поверив ей раньше времени, запишет чужие
+       ходы не на того игрока: поле у обоих одинаковое, а счёт разный.
+       Без очереди подсказывать нечего. */
+    if (!free() && api_.live && api_.turn && v.total === known && !queue.length && !outbox.length)
+      fire('turn', api_.turn, api_.turn !== wasTurn);
+    /* Счёт ходов у игры разошёлся с нашим — ход до поля не доехал. Ждём
+       подтверждения на двух опросах подряд, чтобы не пересобирать раунд
+       из-за случайного мгновения, и собираем поле заново. Больше одного раза
+       за раунд так не лечим: если и после пересборки счёт не сошёлся, значит
+       в списке есть ход, который игра разыграть не может, и вторая попытка
+       даст ровно то же самое — только на экране ходы будут повторяться без
+       конца, а это хуже любой рассинхронизации. */
+    if (crooked()){
+      if (++askew >= 2 && fixes < 1){ askew = 0; fixes++; resync(true); return; }
+    } else askew = 0;
     syncAgain(v);
   }
 
   /* поле разъехалось с сервером — собираем заново по списку ходов */
-  function resync(){
-    try{ console.warn('[net] пересборка раунда: у нас '+applied()+' ходов'); }catch(e){}
+  function resync(force){
+    /* Пересборка — дорогое лекарство: поле собирается с нуля на глазах у
+       игрока. Чаще раза в три секунды её не запускаем, иначе одна упрямая
+       причина превратится в бесконечный перебор ходов на экране. */
+    if (Date.now() - syncAt < 3000) return;
+    syncAt = Date.now();
+    try{ console.warn('[net] пересборка раунда: у нас '+known+' ходов, у игры '+applied()); }catch(e){}
     var g = ++gen;
     call('state', { code:api_.code, token:api_.token, since:0 }).then(function(res){
       if (g !== gen || !api_.on || res.status !== 200) return;
       var v = res.body, i;
       /* Перепроверка: обычно тревога ложная — просто пришёл запоздавший ответ.
-         Пересобирать раунд без нужды нельзя: счёт партий посчитается дважды. */
-      if (v.round === api_.round && v.total >= applied()){
+         Пересобирать раунд без нужды нельзя: счёт партий посчитается дважды.
+         Но если счёт ходов у игры не сходится с нашим, поле уже не то —
+         тогда пересобираем не спрашивая. */
+      if (!force && v.round === api_.round && v.total >= known){
         apply({ status: 200, body: v });
         return;
       }
@@ -434,12 +493,14 @@ var NET = (function(){
       api_.round = v.round;
       over = false;
       queue.length = 0;
+      known = 0;
+      askew = 0;
       clearTimeout(feeder);
       seedRound();
       fire('round', { seat:api_.seat, round:api_.round, seed:api_.seed, rng:api_.rng });
       /* поле собираем тем же путём, что и обычные ходы: по одному, дожидаясь
          игру — иначе двадцать ходов подряд свалятся в одну анимацию */
-      for (i = 0; i < v.moves.length; i++) queue.push({ v: v.moves[i], quick: true });
+      for (i = 0; i < v.moves.length; i++){ queue.push({ v: v.moves[i], quick: true }); known++; }
       drain();
       warn();
     });
@@ -453,6 +514,10 @@ var NET = (function(){
   function begin(){
     api_.live = true;
     over = false;
+    known = 0;
+    askew = 0;
+    fixes = 0;
+    queue.length = 0;
     seedRound();
     document.body.classList.add('np-play');
     fire('begin', { seat:api_.seat, round:api_.round, seed:api_.seed, rng:api_.rng });
@@ -464,7 +529,7 @@ var NET = (function(){
     el.make.disabled = true; el.make.textContent = 'Создаём…';
     el.code.textContent = '·····';
     api_.myName = myName();
-    call('create', { game: opt ? opt.game : 'dvoeplay', name: api_.myName }).then(function(res){
+    call('create', { game: opt ? opt.game : 'dvoeplay', name: api_.myName, free: free() }).then(function(res){
       el.make.disabled = false; el.make.textContent = 'Создать комнату';
       if (res.status !== 200){ say(res.body.error || 'Не получилось создать комнату'); return; }
       api_.code = res.body.code; api_.token = res.body.token;
@@ -497,9 +562,11 @@ var NET = (function(){
   /* Ход этого игрока: next — кому переходит очередь (1 или 2).
      Ход не отправляется «в один конец»: он встаёт в очередь и уходит
      снова и снова, пока сервер не подтвердит. У каждого хода своя метка,
-     поэтому повтор не применится дважды. */
+     поэтому повтор не применится дважды. Без очереди next не нужен, а свой
+     ход засчитывается, только когда вернётся с сервера. */
   function send(move, next){
     if (!api_.on) return;
+    if (!free()) known++;                    /* свой ход — тоже ход раунда */
     outbox.push({ move: move, next: next | 0, round: api_.round,
                   mid: midTag + ':' + (++midNo), tries: 0 });
     flush();
@@ -518,7 +585,9 @@ var NET = (function(){
         outbox.shift();
         sendBad = 0; link();
         if (g === gen) apply(res);
-        if (outbox.length) flush(); else poll(900);
+        /* без очереди свой ход приходит обратно в этом же ответе; если ответ
+           устарел и выброшен — спрашиваем сразу, а не через обычную паузу */
+        if (outbox.length) flush(); else poll(free() ? (g === gen ? 600 : 60) : 900);
         return;
       }
       if (res.status === 404 || res.status === 403 || res.status === 410){
@@ -527,12 +596,13 @@ var NET = (function(){
         return;
       }
       if (res.status === 409 || res.status === 400){
-        /* Сервер ход не принял: сменился раунд или очередь не наша. Наша
-           картина устарела, а ходы, что стоят следом, построены на ней же —
+        /* Сервер ход не принял: сменился раунд, очередь не наша или наша
+           картина поля отстала. Ходы, что стоят следом, построены на ней же —
            значит негодны все. Собираем поле заново по серверу. */
+        try{ console.warn('[net] ход отвергнут сервером: ' + ((res.body && res.body.error) || res.status)); }catch(e){}
         outbox.length = 0;
         sendBad = 0; link();
-        resync();
+        resync(true);
         return;
       }
       /* связь или сервер подвели: ход цел, пробуем ещё раз */
@@ -599,6 +669,7 @@ var NET = (function(){
     api_.on = false; api_.live = false;
     clearTimeout(timer); clearTimeout(feeder); gen++;
     queue.length = 0;
+    known = 0; askew = 0; fixes = 0;
     outbox.length = 0; sending = false;
     pollBad = 0; sendBad = 0; lost = false;
     over = false;
