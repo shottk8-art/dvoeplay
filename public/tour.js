@@ -19,7 +19,6 @@
      games  — id игр по порядку; решающие игры дописываются в конец
      res    — итоги сыгранных: 1 — первый игрок (красные, «я»),
               2 — второй (жёлтые, «друг»), 0 — ничья
-     names  — [первый, второй]
      titles — {id: название} — у игр нет каталога, названия дал хаб
      pool   — все игры, из которых тянется решающая
      f      — [фант, который выполнит первый, фант, который выполнит второй];
@@ -94,12 +93,20 @@ var TOUR = (function(){
     return (g ? g : 'index') + '.html?tour=' + t.id;
   }
   function start(cfg){
-    var t = { id: Date.now(), games: cfg.games.slice(), res: [], names: cfg.names.slice(0, 2),
+    var t = { id: Date.now(), games: cfg.games.slice(), res: [],
               titles: cfg.titles || {}, pool: cfg.pool || cfg.games.slice(), f: cfg.f.slice(0, 2), tb: 0 };
     write(t);
     return t;
   }
   function title(t, id){ return (t.titles && t.titles[id]) || id; }
+  /* Кто играет, турнир не хранит: имена те же, что в играх, из общей памяти
+     (names.me — красные, names.friend — жёлтые), и читаются всякий раз заново.
+     Имени нет — сторона зовётся по цвету, как в самих играх. */
+  function clip(s){ return String(s == null ? '' : s).replace(/\s+/g, ' ').replace(/^\s+|\s+$/g, '').slice(0, 12); }
+  function names(){
+    var n = all().names || {};
+    return [clip(n.me) || 'Красные', clip(n.friend) || 'Жёлтые'];
+  }
 
   /* ---------- в игре ---------- */
   function page(){ var m = /([^\/]+)\.html$/.exec(location.pathname); return m ? m[1] : 'index'; }
@@ -147,7 +154,7 @@ var TOUR = (function(){
       box.id = 'trPanel'; box.className = 'tr-panel';
       again.parentNode.insertBefore(box, again);
     }
-    var s = score(t), n = played(t), nx = current(t), plan = planned(t), part = (t.part || []).length;
+    var s = score(t), n = played(t), nx = current(t), plan = planned(t), part = (t.part || []).length, who = names();
     /* раунды игры ещё идут — номер у неё следующий за сыгранными */
     var no = part ? n + 1 : n;
     var head = no > plan ? 'Турнир · решающая игра' : 'Турнир · игра ' + no + ' из ' + plan;
@@ -162,8 +169,8 @@ var TOUR = (function(){
     else label = 'Дальше: ' + title(t, nx);
     box.innerHTML =
       '<div class="tr-head">' + esc(head) + '</div>' +
-      '<div class="tr-score"><span><em>' + esc(t.names[0]) + '</em></span><b>' + s[0] + ' : ' + s[1] + '</b>' +
-        '<span class="b"><em>' + esc(t.names[1]) + '</em></span></div>' +
+      '<div class="tr-score"><span><em>' + esc(who[0]) + '</em></span><b>' + s[0] + ' : ' + s[1] + '</b>' +
+        '<span class="b"><em>' + esc(who[1]) + '</em></span></div>' +
       '<div class="tr-dots" aria-hidden="true">' + dots + '</div>' +
       (note ? '<p class="tr-note">' + esc(note) + '</p>' : '') +
       /* следующий раунд — та же страница: кнопка просто жмёт спрятанное «Играть снова» */
@@ -228,5 +235,5 @@ var TOUR = (function(){
 
   return { read: read, write: write, start: start, score: score, played: played, current: current,
            winner: winner, over: over, planned: planned, record: record, step: step, rounds: rounds,
-           link: link, title: title };
+           link: link, title: title, names: names };
 })();

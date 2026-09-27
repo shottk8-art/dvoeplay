@@ -545,12 +545,6 @@ a.btn{text-decoration:none;text-align:center}
 .tz-stop.armed{color:var(--red-b);font-weight:600}
 .btn[disabled]{opacity:.42;pointer-events:none}
 /* шторка настройки */
-.tz-names{display:flex;flex-direction:column;gap:8px;margin:0 0 16px}
-.tz-name{position:relative;display:block}
-.tz-name::before{content:"";position:absolute;left:14px;top:50%;width:10px;height:10px;margin-top:-5px;border-radius:50%;
-  background:linear-gradient(180deg,var(--red-a),var(--red-b));z-index:1}
-.tz-name.b::before{background:linear-gradient(180deg,var(--yel-a),var(--yel-b))}
-.tz-name .nin{margin:0;padding-left:34px}   /* у .nin свой нижний отступ — точка уезжала бы вниз */
 .tz-seg{display:flex;background:var(--fill);border-radius:11px;padding:2px;margin:0 0 10px}
 .tz-seg button{flex:1;border:0;background:none;padding:8px 6px;border-radius:9px;color:var(--label);cursor:pointer;
   font:inherit;font-size:14px;font-weight:600;letter-spacing:-.2px;transition:background .2s ease}
@@ -1572,8 +1566,8 @@ var FORFEIT=[
 
 /* ---------- мини-турнир ---------- */
 /* Несколько игр подряд вдвоём на одном телефоне. Здесь турнир собирают
-   (имена, игры — случайно или самим, фанты — по очереди и втайне) и здесь
-   же открывают итог. Сами игры ведёт общий модуль tour.js. */
+   (игры — случайно или самим, фанты — по очереди и втайне) и здесь же
+   открывают итог. Сами игры ведёт общий модуль tour.js. */
 var tzNow=document.getElementById('tourNow');
 var tzInvite=document.getElementById('tourInvite');
 var tzSheet=document.getElementById('tourSheet');
@@ -1585,7 +1579,7 @@ var CUP="<svg class='tz-cup' viewBox='0 0 40 40' aria-hidden='true'><rect width=
 var CHECK="<svg viewBox='0 0 24 24' aria-hidden='true'><circle cx='12' cy='12' r='11' fill='#30B855'/>"+
   "<path d='M7 12.4l3.3 3.3L17.2 8.8' fill='none' stroke='#fff' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/></svg>";
 /* настройка живёт, пока открыта шторка: закрыли посреди — откроется там же */
-var tz={step:1, mode:'rnd', count:3, draw:[], pick:[], f:['',''], names:['','']};
+var tz={step:1, mode:'rnd', count:3, draw:[], pick:[], f:['','']};
 var tzStopArmed=false;
 
 function tzPool(){ return GAMES.filter(function(g){ return g.ready; }).map(function(g){ return g.id; }); }
@@ -1596,6 +1590,15 @@ function tzShuffle(){
   tz.draw=p.slice(0,tz.count);
 }
 function tzGames(){ return tz.mode==='rnd' ? tz.draw : tz.pick; }
+/* Кто играет, в турнире не спрашиваем: имена те же, что в играх (шторка
+   «Имена игроков»), первый — красные, второй — жёлтые. Без имени сторону
+   зовём по цвету, и глагол тогда во множественном: «пишет Аня», но «пишут
+   жёлтые». Читаются всякий раз заново — переименовали посреди турнира,
+   и всё покажет новое имя. */
+function tzNm(i){ return sides('duo')[i]; }
+function tzNamed(i){ var n=DP.names(); return !!(i ? n.friend : n.me); }
+function tzV(i,one,many){ return tzNamed(i) ? one : many; }
+function tzLow(i){ return tzNamed(i) ? tzNm(i) : tzNm(i).toLowerCase(); }
 function tzIcon(id){ return '<svg viewBox="0 0 64 64" aria-hidden="true">'+(ICON[id]||'')+'</svg>'; }
 
 /* ---------- карточки на главном ---------- */
@@ -1621,7 +1624,7 @@ function renderTour(){
   tzNow.innerHTML=
     '<div class="tz-now">'+
       '<span class="pr-head"><b>Турнир</b><i>'+esc(head)+'</i></span>'+
-      board(t.names,{me:s[0],them:s[1]},false)+
+      board(sides('duo'),{me:s[0],them:s[1]},false)+
       '<div class="tz-games">'+icons+'</div>'+
       (done ? '<button class="btn primary tz-go" id="tzOpen" type="button">Итоги и фант</button>'
             : '<a class="btn primary tz-go" id="tzGo" href="'+esc(TOUR.link(t))+'">'+(n?'Продолжить: ':'Начать: ')+esc(TOUR.title(t,cur))+'</a>')+
@@ -1639,29 +1642,20 @@ function renderTour(){
 
 /* ---------- настройка ---------- */
 function openSetup(fresh){
-  var n=DP.names();
-  if(fresh || !tz.names[0] && !tz.names[1]) tz.names=[n.me||'', n.friend||''];
   if(fresh){ tz.step=1; tz.f=['','']; }
   if(tz.step===1 && !tz.draw.length) tzShuffle();
   renderSetup();
   backdrop.classList.add('on'); tzSheet.classList.add('on');
 }
 function closeSetup(){ tzSheet.classList.remove('on'); backdrop.classList.remove('on'); }
-function tzReady(){
-  var g=tzGames();
-  return tz.names[0].trim() && tz.names[1].trim() && g.length>=2;
-}
-function renderSetup(){
-  var body=document.getElementById('tzBody'), sub=document.getElementById('tzSub'), h='', g=tzGames(), i;
-  var n1=tz.names[0].trim(), n2=tz.names[1].trim();
+function tzReady(){ return tzGames().length>=2; }
+/* keep — перерисовка того же шага (перемешали, сменили число игр): шторка
+   остаётся там, где её пролистали; новый шаг начинается сверху */
+function renderSetup(keep){
+  var body=document.getElementById('tzBody'), sub=document.getElementById('tzSub'), h='', g=tzGames(), y=tzSheet.scrollTop;
   if(tz.step===1){
     sub.textContent='Несколько игр подряд на одном телефоне. Проигравший выполняет фант, который втайне придумал соперник';
-    h+='<p class="pr-sub">Кто играет</p>'+
-       '<div class="tz-names">'+
-         '<label class="tz-name a"><input class="nin" id="tzN1" maxlength="12" autocomplete="off" placeholder="Имя — играет красными" value="'+esc(tz.names[0])+'"></label>'+
-         '<label class="tz-name b"><input class="nin" id="tzN2" maxlength="12" autocomplete="off" placeholder="Имя — играет жёлтыми" value="'+esc(tz.names[1])+'"></label>'+
-       '</div>'+
-       '<p class="pr-sub">Игры</p>'+
+    h+='<p class="pr-sub">Игры</p>'+
        '<div class="tz-seg" id="tzMode"><button type="button" data-m="rnd"'+(tz.mode==='rnd'?' class="on"':'')+'>Случайно</button>'+
          '<button type="button" data-m="pick"'+(tz.mode==='pick'?' class="on"':'')+'>Выбрать самим</button></div>';
     if(tz.mode==='rnd'){
@@ -1676,7 +1670,7 @@ function renderSetup(){
       h+='<p class="tz-hint">Нажимайте игры в том порядке, в каком будете играть. Нужно хотя бы две</p>'+
          '<div class="slist" id="tzPick">'+tzPool().map(function(id){
            var k=tz.pick.indexOf(id);
-           return '<button class="srow tz-pick'+(k>-1?' on':'')+'" type="button" data-g="'+id+'">'+tzIcon(id)+
+           return '<button class="srow tz-pick'+(k>-1?' on':'')+'" type="button" data-g="'+id+'" aria-pressed="'+(k>-1)+'">'+tzIcon(id)+
                   '<span class="n"><b>'+esc(byId(id).title)+'</b><i>'+esc(byId(id).desc)+'</i></span>'+
                   '<span class="tz-num">'+(k>-1?k+1:'')+'</span></button>';
          }).join('')+'</div>';
@@ -1687,9 +1681,9 @@ function renderSetup(){
     /* пишет первый — фант второму; потом наоборот */
     var w=tz.step===2?0:1, o=1-w;
     sub.textContent='Фанты пишутся по очереди и прячутся: их откроют только в конце';
-    h+='<div class="tz-who '+(w?'b':'a')+'"><span>Пишет</span><b>'+esc(tz.names[w])+'</b></div>'+
-       '<p class="tz-hint" style="text-align:center">Фант, который выполнит <b>'+esc(tz.names[o])+'</b>, если проиграет турнир. '+
-         esc(tz.names[o])+', не подглядывай!</p>'+
+    h+='<div class="tz-who '+(w?'b':'a')+'"><span>'+tzV(w,'Пишет','Пишут')+'</span><b>'+esc(tzNm(w))+'</b></div>'+
+       '<p class="tz-hint" style="text-align:center">Фант, который '+tzV(o,'выполнит','выполнят')+' <b>'+esc(tzLow(o))+'</b>, '+
+         'если '+tzV(o,'проиграет','проиграют')+' турнир. '+esc(tzNm(o))+', не '+tzV(o,'подглядывай','подглядывайте')+'!</p>'+
        '<textarea class="nin tz-f" id="tzF" maxlength="120" placeholder="Например: моет посуду всю неделю"></textarea>'+
        '<button class="btn" id="tzIdea" type="button">Подсказать</button>'+
        '<button class="btn primary" id="tzHide" type="button" disabled>'+(w?'Спрятать':'Спрятать и передать телефон')+'</button>'+
@@ -1704,7 +1698,7 @@ function renderSetup(){
        '<button class="btn primary" id="tzStart" type="button">Начать турнир</button>';
   }
   body.innerHTML=h;
-  try{ tzSheet.scrollTop=0; }catch(e){}
+  try{ tzSheet.scrollTop=keep ? y : 0; }catch(e){}
   wireSetup();
 }
 function tzCheck(){
@@ -1712,28 +1706,26 @@ function tzCheck(){
   if(!b) return;
   var ok=tzReady();
   b.disabled=!ok;
-  why.textContent = ok ? '' : (!tz.names[0].trim()||!tz.names[1].trim()) ? 'Впишите оба имени — фант достанется конкретному человеку'
-                                                                      : 'Выберите хотя бы две игры';
+  why.textContent = ok ? '' : 'Выберите хотя бы две игры';
 }
 function wireSetup(){
   var el=function(id){ return document.getElementById(id); };
   if(tz.step===1){
-    ['tzN1','tzN2'].forEach(function(id,k){
-      el(id).addEventListener('input',function(){ tz.names[k]=el(id).value; tzCheck(); });
-      el(id).addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); el(id).blur(); } });
-    });
     [].forEach.call(document.querySelectorAll('#tzMode button'),function(b){
-      b.addEventListener('click',function(){ tz.mode=b.getAttribute('data-m'); renderSetup(); });
+      b.addEventListener('click',function(){ tz.mode=b.getAttribute('data-m'); renderSetup(true); });
     });
     [].forEach.call(document.querySelectorAll('#tzCount button'),function(b){
-      b.addEventListener('click',function(){ tz.count=+b.getAttribute('data-n'); tzShuffle(); renderSetup(); });
+      b.addEventListener('click',function(){ tz.count=+b.getAttribute('data-n'); tzShuffle(); renderSetup(true); });
     });
-    if(el('tzShuffle')) el('tzShuffle').addEventListener('click',function(){ tzShuffle(); renderSetup(); });
+    if(el('tzShuffle')) el('tzShuffle').addEventListener('click',function(){ tzShuffle(); renderSetup(true); });
+    /* выбор игры меняет только номера на кнопках — список не перерисовывается,
+       и шторка не прыгает, сколько бы игр ни выбирали */
     [].forEach.call(document.querySelectorAll('#tzPick .tz-pick'),function(b){
       b.addEventListener('click',function(){
         var id=b.getAttribute('data-g'), k=tz.pick.indexOf(id);
         if(k>-1) tz.pick.splice(k,1); else tz.pick.push(id);
-        renderSetup();
+        paintPick();
+        tzCheck();
       });
     });
     el('tzToF').addEventListener('click',function(){ if(!tzReady()) return; tz.step=2; renderSetup(); });
@@ -1758,14 +1750,20 @@ function wireSetup(){
     if(el('tzBack')) el('tzBack').addEventListener('click',function(){ tz.step=1; renderSetup(); });
   }else{
     el('tzStart').addEventListener('click',function(){
-      var names=[tz.names[0].trim(), tz.names[1].trim()];
-      /* имена — те же, что в играх: первый — «я», красные; второй — «друг» */
-      DP.names({me:names[0], friend:names[1]});
-      var t=TOUR.start({games:tzGames(), names:names, titles:tzTitles(), pool:tzPool(), f:tz.f});
-      tz={step:1, mode:tz.mode, count:tz.count, draw:[], pick:[], f:['',''], names:['','']};
+      var t=TOUR.start({games:tzGames(), titles:tzTitles(), pool:tzPool(), f:tz.f});
+      tz={step:1, mode:tz.mode, count:tz.count, draw:[], pick:[], f:['','']};
       location.href=TOUR.link(t);
     });
   }
+}
+
+function paintPick(){
+  [].forEach.call(document.querySelectorAll('#tzPick .tz-pick'),function(b){
+    var k=tz.pick.indexOf(b.getAttribute('data-g'));
+    b.classList.toggle('on',k>-1);
+    b.setAttribute('aria-pressed',String(k>-1));
+    b.querySelector('.tz-num').textContent=k>-1 ? k+1 : '';
+  });
 }
 
 /* ---------- итог ---------- */
@@ -1774,19 +1772,20 @@ function openEnd(){
   if(!t || !TOUR.over(t)) return;
   var w=TOUR.winner(t), l=3-w, s=TOUR.score(t), plan=TOUR.planned(t), rows='';
   document.getElementById('teMedal').className='tz-medal'+(w===2?' b':'');
-  document.getElementById('teTitle').textContent='Победа: '+t.names[w-1];
+  /* как в играх: «Победа: Аня», а без имени — «Победили жёлтые» */
+  document.getElementById('teTitle').textContent=tzNamed(w-1) ? 'Победа: '+tzNm(w-1) : 'Победили '+tzLow(w-1);
   document.getElementById('teSub').textContent='Турнир '+s[0]+' : '+s[1]+' · '+t.games.length+' '+plural(t.games.length,'игра','игры','игр')+
     (t.tb ? ' · с решающей' : '');
   t.games.forEach(function(g,i){
     var r=t.res[i];
     rows+='<div class="srow">'+tzIcon(g)+'<span class="n"><b>'+esc(TOUR.title(t,g))+'</b>'+
       (i>=plan?'<i>решающая</i>':'')+'</span>'+
-      '<span class="tz-res'+(r===1?' a':r===2?' b':'')+'">'+esc(r ? t.names[r-1] : 'ничья')+'</span></div>';
+      '<span class="tz-res'+(r===1?' a':r===2?' b':'')+'">'+esc(r ? tzNm(r-1) : 'ничья')+'</span></div>';
   });
   document.getElementById('teBody').innerHTML=
     '<div class="slist">'+rows+'</div>'+
     '<button class="tz-reveal'+(l===2?' b':'')+'" id="teReveal" type="button">'+
-      '<span class="tz-cover">Открыть фант<em>'+esc(t.names[l-1])+', готовься</em></span>'+
+      '<span class="tz-cover">Открыть фант<em>'+esc(tzNm(l-1))+', '+tzV(l-1,'готовься','готовьтесь')+'</em></span>'+
       '<span class="tz-open"></span>'+
     '</button>'+
     '<button class="tz-second" id="teSecond" type="button" hidden>Показать второй фант — он не пригодился</button>';
@@ -1794,13 +1793,14 @@ function openEnd(){
   rv.addEventListener('click',function(){
     if(rv.classList.contains('shown')) return;
     /* текст фанта попадает на страницу только сейчас — до нажатия его нет нигде, даже в разметке */
-    rv.querySelector('.tz-open').innerHTML='<i>'+esc(t.names[l-1])+' выполняет фант</i><b>«'+esc(t.f[l-1])+'»</b><em>придумано соперником</em>';
+    var who=tzNm(l-1)+' '+tzV(l-1,'выполняет','выполняют')+' фант';
+    rv.querySelector('.tz-open').innerHTML='<i>'+esc(who)+'</i><b>«'+esc(t.f[l-1])+'»</b><em>придумано соперником</em>';
     rv.classList.add('shown'); sc.hidden=false;
     FX.fire([14,60,26],'success');
-    announce(t.names[l-1]+' выполняет фант: '+t.f[l-1]);
+    announce(who+': '+t.f[l-1]);
   });
   sc.addEventListener('click',function(){
-    sc.innerHTML='А это ждало бы: <b>'+esc(t.names[w-1])+'</b> — «'+esc(t.f[w-1])+'»';
+    sc.innerHTML='А это ждало бы: <b>'+esc(tzNm(w-1))+'</b> — «'+esc(t.f[w-1])+'»';
   });
   backdrop.classList.add('on'); tzEnd.classList.add('on');
 }
@@ -1871,7 +1871,7 @@ function closeWho(){
   saveWho();
   try{ meEl.blur(); friendEl.blur(); }catch(e){}
   backdrop.classList.remove('on'); whoSheet.classList.remove('on');
-  renderRecent(); renderPair();
+  renderRecent(); renderPair(); renderTour();
 }
 meEl.addEventListener('input',saveWho);
 friendEl.addEventListener('input',saveWho);
