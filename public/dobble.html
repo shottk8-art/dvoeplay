@@ -441,6 +441,7 @@ body{
 <div class="sr" aria-live="polite" id="live"></div>
 
 <script src="net.js"></script>
+<script src="tour.js"></script>
 <script>
 (function(){
 "use strict";
@@ -626,17 +627,49 @@ function flash(el,s,cls){
   if(!g) return;
   g.classList.remove(cls); void g.getBoundingClientRect(); g.classList.add(cls);
 }
-/* какой символ под пальцем: ближайший к точке касания в координатах карты */
+/* Какой символ под пальцем.
+
+   Раньше точка касания переводилась в координаты карты через getScreenCTM().
+   В Safari он не учитывает CSS-трансформации предков (WebKit bug 209220),
+   а вдвоём верхняя половина стола повёрнута на 180° — на iPhone касания по
+   карте верхнего игрока уходили за пределы карты, и символы не нажимались.
+   Chrome и Android этого не замечали.
+
+   Теперь сначала спрашиваем сам браузер, в какой символ попал палец: его
+   попадание всегда учитывает поворот. Промахнулся мимо круга символа —
+   ищем ближайший с небольшим запасом, а точку карты считаем по экранным
+   положениям двух символов (toCard), без getScreenCTM. */
 function pick(el,e){
-  var svg=el.querySelector('svg'); if(!svg||!lay[el.id]) return -1;
-  var m=svg.getScreenCTM(); if(!m) return -1;
-  var p=svg.createSVGPoint(); p.x=e.clientX; p.y=e.clientY;
-  var q=p.matrixTransform(m.inverse()), best=-1, bd=1e9;
-  lay[el.id].items.forEach(function(it){
+  var L=lay[el.id]; if(!L) return -1;
+  var t=e.target, g=t&&t.closest?t.closest('.sy'):null;
+  if(g && el.contains(g)) return +g.getAttribute('data-s');
+  var q=toCard(el,L,e.clientX,e.clientY), best=-1, bd=1e9;
+  if(!q) return -1;
+  L.items.forEach(function(it){
     var dx=q.x-it.x, dy=q.y-it.y, d=dx*dx+dy*dy, lim=it.k*14;
     if(d<bd && d<lim*lim){ bd=d; best=it.s; }
   });
   return best;
+}
+/* Точка экрана → координаты карты. Два символа известны и в координатах
+   карты (раскладка), и на экране (центры их кругов-мишеней, а рамки
+   getBoundingClientRect учитывают любые повороты во всех браузерах). По двум
+   парам точек восстанавливаются поворот, масштаб и сдвиг: в комплексных
+   числах экран = a·карта + b, отсюда карта = p1 + (экран − s1)/a. */
+function toCard(el,L,X,Y){
+  var P=[], i, c, r;
+  for(i=0;i<L.items.length && P.length<2;i++){
+    c=el.querySelector('.sy[data-s="'+L.items[i].s+'"] .hit');
+    r=c && c.getBoundingClientRect();
+    if(r && r.width) P.push({x:L.items[i].x, y:L.items[i].y, X:r.left+r.width/2, Y:r.top+r.height/2});
+  }
+  if(P.length<2) return null;
+  var px=P[1].x-P[0].x, py=P[1].y-P[0].y, sx=P[1].X-P[0].X, sy=P[1].Y-P[0].Y, n=px*px+py*py;
+  if(!n) return null;
+  var ax=(sx*px+sy*py)/n, ay=(sy*px-sx*py)/n, an=ax*ax+ay*ay;      /* a = (s2 − s1)/(p2 − p1) */
+  if(!an) return null;
+  var dx=X-P[0].X, dy=Y-P[0].Y;
+  return {x:P[0].x+(dx*ax+dy*ay)/an, y:P[0].y+(dy*ax-dx*ay)/an};
 }
 
 /* ===== размеры ===== */
@@ -842,6 +875,9 @@ var DP=(function(){
     d.games[id]=g;
     try{ duel(d,id,r); }catch(e){}
     write(d);
+    /* итог партии — тем, кто слушает: мини-турнир (tour.js) ведёт по нему счёт.
+       Бросаем после записи, чтобы слушатель читал уже обновлённую память. */
+    try{ document.dispatchEvent(new CustomEvent('dp:save',{detail:{id:id,win:r.win,mode:r.mode}})); }catch(e){}
   }
   /* Сброс статистики стирает только историю партий. Имена, тема и звук —
      настройки, а не статистика: раньше сброс стирал весь ключ, и вместе

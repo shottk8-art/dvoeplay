@@ -450,6 +450,7 @@ body{
 <div class="sr" aria-live="polite" id="live"></div>
 
 <script src="net.js"></script>
+<script src="tour.js"></script>
 <script>
 (function(){
 "use strict";
@@ -860,6 +861,9 @@ var DP=(function(){
     d.games[id]=g;
     try{ duel(d,id,r); }catch(e){}
     write(d);
+    /* итог партии — тем, кто слушает: мини-турнир (tour.js) ведёт по нему счёт.
+       Бросаем после записи, чтобы слушатель читал уже обновлённую память. */
+    try{ document.dispatchEvent(new CustomEvent('dp:save',{detail:{id:id,win:r.win,mode:r.mode}})); }catch(e){}
   }
   /* Сброс статистики стирает только историю партий. Имена, тема и звук —
      настройки, а не статистика: раньше сброс стирал весь ключ, и вместе

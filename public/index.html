@@ -514,6 +514,91 @@ body{
 .srow.pr-btn{width:100%;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
 .srow.pr-btn:active{background:var(--fill)}
 
+/* ---------- мини-турнир ---------- */
+/* Имена классов с приставкой tz-: короткие в этом файле заняты (.t — плитки сетки). */
+.tz-card{
+  display:flex;align-items:center;gap:12px;width:100%;margin:14px 0 0;padding:12px 13px 12px 12px;border:0;border-radius:18px;
+  background:var(--surface);box-shadow:var(--card-shadow);color:inherit;font:inherit;text-align:left;cursor:pointer;
+  transition:transform .18s var(--spring);animation:rise .45s var(--ease) both;
+}
+.tz-card:active{transform:scale(.985)}
+.tz-cup{width:42px;height:42px;flex:none;border-radius:11px}
+.tz-txt{flex:1;min-width:0}
+.tz-txt b{display:block;font-size:16px;font-weight:700;letter-spacing:-.3px}
+.tz-txt i{display:block;font-style:normal;font-size:12.5px;line-height:1.3;color:var(--label2);margin-top:2px}
+.tz-cta{flex:none;padding:8px 13px;border-radius:999px;background:var(--tint);color:#fff;font-size:14px;font-weight:600;letter-spacing:-.2px}
+/* турнир идёт — карточка наверху экрана */
+.tz-now{margin:0 0 14px;padding:12px 14px 14px;border-radius:20px;background:var(--surface);box-shadow:var(--card-shadow);animation:rise .45s var(--ease) both}
+.tz-games{display:flex;justify-content:center;gap:8px;margin:12px 0 2px;flex-wrap:wrap}
+.tz-g{position:relative;width:34px;height:34px;border-radius:9px;opacity:.38}
+.tz-g svg{width:34px;height:34px;border-radius:9px;display:block}
+.tz-g.done{opacity:1}
+.tz-g.now{opacity:1;box-shadow:0 0 0 2.5px var(--tint)}
+.tz-g i{position:absolute;right:-3px;bottom:-3px;width:13px;height:13px;border-radius:50%;
+  background:var(--label3);box-shadow:0 0 0 2px var(--surface)}
+.tz-g i.a{background:var(--red-b)}
+.tz-g i.b{background:var(--yel-b)}
+a.btn{text-decoration:none;text-align:center}
+.tz-go{margin-top:12px}
+.tz-stop{display:block;margin:8px auto 0;padding:6px 10px;border:0;background:none;color:var(--label3);
+  font:inherit;font-size:13px;cursor:pointer}
+.tz-stop.armed{color:var(--red-b);font-weight:600}
+.btn[disabled]{opacity:.42;pointer-events:none}
+/* шторка настройки */
+.tz-names{display:flex;flex-direction:column;gap:8px;margin:0 0 16px}
+.tz-name{position:relative;display:block}
+.tz-name::before{content:"";position:absolute;left:14px;top:50%;width:10px;height:10px;margin-top:-5px;border-radius:50%;
+  background:linear-gradient(180deg,var(--red-a),var(--red-b));z-index:1}
+.tz-name.b::before{background:linear-gradient(180deg,var(--yel-a),var(--yel-b))}
+.tz-name .nin{margin:0;padding-left:34px}   /* у .nin свой нижний отступ — точка уезжала бы вниз */
+.tz-seg{display:flex;background:var(--fill);border-radius:11px;padding:2px;margin:0 0 10px}
+.tz-seg button{flex:1;border:0;background:none;padding:8px 6px;border-radius:9px;color:var(--label);cursor:pointer;
+  font:inherit;font-size:14px;font-weight:600;letter-spacing:-.2px;transition:background .2s ease}
+.tz-seg button.on{background:var(--pill);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.tz-hint{margin:0 4px 10px;font-size:13px;line-height:1.4;color:var(--label2)}
+.tz-hint b{color:var(--label);font-weight:600}
+.srow.tz-pick{width:100%;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.srow.tz-pick:active{background:var(--fill)}
+.tz-num{width:24px;height:24px;flex:none;border-radius:50%;display:grid;place-items:center;
+  box-shadow:inset 0 0 0 1.5px var(--label3);font-size:13px;font-weight:700;color:transparent;font-variant-numeric:tabular-nums}
+.tz-pick.on .tz-num{background:var(--tint);box-shadow:none;color:#fff}
+.tz-who{display:flex;flex-direction:column;align-items:center;gap:2px;margin:4px 0 12px}
+.tz-who span{font-size:13px;color:var(--label2)}
+.tz-who b{display:flex;align-items:center;gap:8px;font-size:26px;font-weight:700;letter-spacing:-.6px}
+.tz-who b::before{content:"";width:13px;height:13px;border-radius:50%;background:linear-gradient(180deg,var(--red-a),var(--red-b))}
+.tz-who.b b::before{background:linear-gradient(180deg,var(--yel-a),var(--yel-b))}
+textarea.nin{min-height:96px;resize:none;line-height:1.35;font-weight:500}
+.tz-f{margin:0 0 10px}
+.tz-back{display:block;margin:10px auto 0;padding:6px 10px;border:0;background:none;color:var(--tint);font:inherit;font-size:15px;cursor:pointer}
+.tz-ok{display:flex;align-items:center;justify-content:center;gap:8px;margin:2px 0 6px;font-size:17px;font-weight:700;letter-spacing:-.3px}
+.tz-ok svg{width:22px;height:22px}
+/* итог турнира */
+.tz-medal{width:58px;height:58px;margin:2px auto 12px;border-radius:50%;
+  background:radial-gradient(circle at 33% 27%,rgba(255,255,255,.62),rgba(255,255,255,0) 48%),linear-gradient(180deg,var(--red-a),var(--red-b));
+  box-shadow:0 2px 6px rgba(0,0,0,.2),inset 0 -3px 6px rgba(0,0,0,.2)}
+.tz-medal.b{background:radial-gradient(circle at 33% 27%,rgba(255,255,255,.62),rgba(255,255,255,0) 48%),linear-gradient(180deg,var(--yel-a),var(--yel-b))}
+.sheet.on .tz-medal{animation:rise .5s var(--spring) both}
+.tz-res{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:var(--label2);white-space:nowrap}
+.tz-res::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--label3)}
+.tz-res.a::before{background:var(--red-b)}
+.tz-res.b::before{background:var(--yel-b)}
+.tz-reveal{display:block;width:100%;margin:0 0 10px;padding:16px;border:0;border-radius:18px;cursor:pointer;
+  background:linear-gradient(135deg,var(--red-a),var(--red-b) 55%,#C42A20);color:#fff;font:inherit;text-align:center;
+  box-shadow:0 10px 24px -12px rgba(231,54,43,.7);transition:transform .18s var(--spring)}
+.tz-reveal.b{background:linear-gradient(135deg,var(--yel-a),var(--yel-b) 60%,#E0A800);color:#1C1C1E;box-shadow:0 10px 24px -12px rgba(245,190,10,.8)}
+.tz-reveal:active{transform:scale(.98)}
+.tz-reveal .tz-cover{display:block;font-size:16px;font-weight:700;letter-spacing:-.2px}
+.tz-reveal .tz-cover em{display:block;font-style:normal;font-size:13px;font-weight:500;opacity:.8;margin-top:3px}
+.tz-reveal .tz-open{display:none}
+.tz-reveal.shown .tz-cover{display:none}
+.tz-reveal.shown .tz-open{display:block;animation:rise .4s var(--spring) both}
+.tz-open i{display:block;font-style:normal;font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;opacity:.85}
+.tz-open b{display:block;margin:7px 0 6px;font-size:21px;font-weight:700;letter-spacing:-.4px;line-height:1.25;overflow-wrap:anywhere}
+.tz-open em{display:block;font-style:normal;font-size:12.5px;opacity:.8}
+.tz-second{display:block;width:100%;margin:0 0 14px;padding:8px;border:0;background:none;color:var(--label2);
+  font:inherit;font-size:13.5px;text-align:center;cursor:pointer;line-height:1.4}
+.tz-second b{color:var(--label);font-weight:600}
+
 /* ---------- шторка статистики ---------- */
 .backdrop{
   position:fixed;inset:0;background:rgba(0,0,0,.4);opacity:0;pointer-events:none;
@@ -596,9 +681,13 @@ body{
     </div>
   </div>
 
+  <div id="tourNow" hidden></div>
+
   <div id="pair" hidden></div>
 
   <div id="hero"></div>
+
+  <div id="tourInvite" hidden></div>
 
   <div class="section" id="contHead" hidden><h2 id="contTitle">Продолжить</h2><span id="contNote"></span></div>
   <div class="cont" id="cont" hidden></div>
@@ -651,7 +740,23 @@ body{
   <button class="btn warn" id="pairReset" type="button">Обнулить счёт</button>
   <button class="btn primary" id="pairClose" type="button">Готово</button>
 </aside>
+<aside class="sheet" id="tourSheet" role="dialog" aria-modal="true" aria-labelledby="tzTitle">
+  <div class="grab"></div>
+  <h2 id="tzTitle">Мини-турнир</h2>
+  <p class="sub" id="tzSub"></p>
+  <div id="tzBody"></div>
+</aside>
+<aside class="sheet" id="tourEnd" role="dialog" aria-modal="true" aria-labelledby="teTitle">
+  <div class="grab"></div>
+  <div class="tz-medal" id="teMedal"></div>
+  <h2 id="teTitle">Победа</h2>
+  <p class="sub" id="teSub"></p>
+  <div id="teBody"></div>
+  <button class="btn primary" id="teAgain" type="button">Новый турнир</button>
+  <button class="btn" id="teDone" type="button">Готово</button>
+</aside>
 
+<script src="tour.js"></script>
 <script>
 (function(){
 'use strict';
@@ -679,6 +784,9 @@ var DP=(function(){
     d.games[id]=g;
     try{ duel(d,id,r); }catch(e){}
     write(d);
+    /* итог партии — тем, кто слушает: мини-турнир (tour.js) ведёт по нему счёт.
+       Бросаем после записи, чтобы слушатель читал уже обновлённую память. */
+    try{ document.dispatchEvent(new CustomEvent('dp:save',{detail:{id:id,win:r.win,mode:r.mode}})); }catch(e){}
   }
   /* Сброс статистики стирает только историю партий. Имена, тема и звук —
      настройки, а не статистика: раньше сброс стирал весь ключ, и вместе
@@ -1186,6 +1294,10 @@ function heroPicks(){
     picks.push({key:'fav', label:'Любимая', g:fav.g, cta:'Играть',
                 meta:'Сыграно '+s.plays+' '+plural(s.plays,'партия','партии','партий')});
   }
+  /* Пока идёт турнир, продолжать надо турнир — его карточка наверху. Плашка
+     «Продолжить» с прошлой игрой звала бы туда же, но мимо турнира. */
+  var t=TOUR.read();
+  if(t && !TOUR.over(t) && picks.length>1) picks=picks.filter(function(p){ return p.key!=='cont'; });
   return picks;
 }
 
@@ -1433,6 +1545,272 @@ document.getElementById('pairNames').addEventListener('click',function(){
   openWho();
 });
 
+/* список фантов серии — тот же, что в играх; здесь он подсказывает, что вписать */
+/* [для «Красные/Жёлтые …», для «Вы …», для имени] */
+var FORFEIT=[
+  ['моют посуду','моете посуду','моет посуду'],
+  ['выносят мусор','выносите мусор','выносит мусор'],
+  ['заваривают чай','завариваете чай','заваривает чай'],
+  ['готовят завтрак','готовите завтрак','готовит завтрак'],
+  ['пылесосят в комнате','пылесосите в комнате','пылесосит в комнате'],
+  ['собирают со стола','собираете со стола','собирает со стола'],
+  ['поливают цветы','поливаете цветы','поливает цветы'],
+  ['загружают посудомойку','загружаете посудомойку','загружает посудомойку'],
+  ['идут за мороженым','идёте за мороженым','идёт за мороженым'],
+  ['моют пол на кухне','моете пол на кухне','моет пол на кухне'],
+  ['выгуливают собаку','выгуливаете собаку','выгуливает собаку'],
+  ['застилают постель три дня','застилаете постель три дня','застилает постель три дня'],
+  ['уступают пульт на вечер','уступаете пульт на вечер','уступает пульт на вечер'],
+  ['отжимаются десять раз','отжимаетесь десять раз','отжимается десять раз'],
+  ['рассказывают анекдот','рассказываете анекдот','рассказывает анекдот'],
+  ['поют куплет по выбору победителя','поёте куплет по выбору победителя','поёт куплет по выбору победителя'],
+  ['придумывают ужин на завтра','придумываете ужин на завтра','придумывает ужин на завтра'],
+  ['молчат целую минуту','молчите целую минуту','молчит целую минуту'],
+  ['три раза говорят «ты сегодня сильнее»','три раза говорите «ты сегодня сильнее»','три раза говорит «ты сегодня сильнее»'],
+  ['делают победителю комплимент','делаете победителю комплимент','делает победителю комплимент']
+];
+
+/* ---------- мини-турнир ---------- */
+/* Несколько игр подряд вдвоём на одном телефоне. Здесь турнир собирают
+   (имена, игры — случайно или самим, фанты — по очереди и втайне) и здесь
+   же открывают итог. Сами игры ведёт общий модуль tour.js. */
+var tzNow=document.getElementById('tourNow');
+var tzInvite=document.getElementById('tourInvite');
+var tzSheet=document.getElementById('tourSheet');
+var tzEnd=document.getElementById('tourEnd');
+var CUP="<svg class='tz-cup' viewBox='0 0 40 40' aria-hidden='true'><rect width='40' height='40' rx='11' fill='#1C1C1E'/>"+
+  "<path d='M12.6 9.6h14.8v6.3a7.4 7.4 0 0 1-14.8 0z' fill='#F5BE0A'/>"+
+  "<path d='M12.8 11.8H9.6a3.6 3.6 0 0 0 3.9 5.4M27.2 11.8h3.2a3.6 3.6 0 0 1-3.9 5.4' fill='none' stroke='#F5BE0A' stroke-width='2.2' stroke-linecap='round'/>"+
+  "<rect x='18.4' y='22.4' width='3.2' height='4.8' fill='#F5BE0A'/><rect x='13.6' y='27' width='12.8' height='4.4' rx='1.6' fill='#E7362B'/></svg>";
+var CHECK="<svg viewBox='0 0 24 24' aria-hidden='true'><circle cx='12' cy='12' r='11' fill='#30B855'/>"+
+  "<path d='M7 12.4l3.3 3.3L17.2 8.8' fill='none' stroke='#fff' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/></svg>";
+/* настройка живёт, пока открыта шторка: закрыли посреди — откроется там же */
+var tz={step:1, mode:'rnd', count:3, draw:[], pick:[], f:['',''], names:['','']};
+var tzStopArmed=false;
+
+function tzPool(){ return GAMES.filter(function(g){ return g.ready; }).map(function(g){ return g.id; }); }
+function tzTitles(){ var o={}; GAMES.forEach(function(g){ if(g.ready) o[g.id]=g.title; }); return o; }
+function tzShuffle(){
+  var p=tzPool(), i, j, x;
+  for(i=p.length-1;i>0;i--){ j=(Math.random()*(i+1))|0; x=p[i]; p[i]=p[j]; p[j]=x; }
+  tz.draw=p.slice(0,tz.count);
+}
+function tzGames(){ return tz.mode==='rnd' ? tz.draw : tz.pick; }
+function tzIcon(id){ return '<svg viewBox="0 0 64 64" aria-hidden="true">'+(ICON[id]||'')+'</svg>'; }
+
+/* ---------- карточки на главном ---------- */
+function renderTour(){
+  var t=TOUR.read();
+  tzInvite.innerHTML = t ? '' :
+    '<button class="tz-card" id="tzInv" type="button">'+CUP+
+      '<span class="tz-txt"><b>Мини-турнир</b><i>Несколько игр подряд, а проигравшему — фант от соперника</i></span>'+
+      '<span class="tz-cta">Собрать</span></button>';
+  tzInvite.hidden=!!t;
+  if(!t){
+    document.getElementById('tzInv').addEventListener('click',function(){ openSetup(false); });
+    tzNow.innerHTML=''; tzNow.hidden=true;
+    return;
+  }
+  var s=TOUR.score(t), n=TOUR.played(t), plan=TOUR.planned(t), done=TOUR.over(t), cur=TOUR.current(t);
+  var head = done ? 'окончен' : (n>=plan ? 'решающая игра' : 'игра '+(n+1)+' из '+plan);
+  var icons=t.games.map(function(g,i){
+    var r=t.res[i];
+    return '<span class="tz-g'+(i<n?' done':'')+(i===n&&!done?' now':'')+'" title="'+esc(TOUR.title(t,g))+'">'+tzIcon(g)+
+      (i<n ? '<i'+(r===1?' class="a"':r===2?' class="b"':'')+'></i>' : '')+'</span>';
+  }).join('');
+  tzNow.innerHTML=
+    '<div class="tz-now">'+
+      '<span class="pr-head"><b>Турнир</b><i>'+esc(head)+'</i></span>'+
+      board(t.names,{me:s[0],them:s[1]},false)+
+      '<div class="tz-games">'+icons+'</div>'+
+      (done ? '<button class="btn primary tz-go" id="tzOpen" type="button">Итоги и фант</button>'
+            : '<a class="btn primary tz-go" id="tzGo" href="'+esc(TOUR.link(t))+'">'+(n?'Продолжить: ':'Начать: ')+esc(TOUR.title(t,cur))+'</a>')+
+      '<button class="tz-stop" id="tzStop" type="button">Прервать турнир</button>'+
+    '</div>';
+  tzNow.hidden=false;
+  tzStopArmed=false;
+  if(done) document.getElementById('tzOpen').addEventListener('click',openEnd);
+  document.getElementById('tzStop').addEventListener('click',function(){
+    var b=document.getElementById('tzStop');
+    if(!tzStopArmed){ tzStopArmed=true; b.classList.add('armed'); b.textContent='Точно прервать? Фанты пропадут'; return; }
+    TOUR.write(null); renderTour(); announce('Турнир прерван');
+  });
+}
+
+/* ---------- настройка ---------- */
+function openSetup(fresh){
+  var n=DP.names();
+  if(fresh || !tz.names[0] && !tz.names[1]) tz.names=[n.me||'', n.friend||''];
+  if(fresh){ tz.step=1; tz.f=['','']; }
+  if(tz.step===1 && !tz.draw.length) tzShuffle();
+  renderSetup();
+  backdrop.classList.add('on'); tzSheet.classList.add('on');
+}
+function closeSetup(){ tzSheet.classList.remove('on'); backdrop.classList.remove('on'); }
+function tzReady(){
+  var g=tzGames();
+  return tz.names[0].trim() && tz.names[1].trim() && g.length>=2;
+}
+function renderSetup(){
+  var body=document.getElementById('tzBody'), sub=document.getElementById('tzSub'), h='', g=tzGames(), i;
+  var n1=tz.names[0].trim(), n2=tz.names[1].trim();
+  if(tz.step===1){
+    sub.textContent='Несколько игр подряд на одном телефоне. Проигравший выполняет фант, который втайне придумал соперник';
+    h+='<p class="pr-sub">Кто играет</p>'+
+       '<div class="tz-names">'+
+         '<label class="tz-name a"><input class="nin" id="tzN1" maxlength="12" autocomplete="off" placeholder="Имя — играет красными" value="'+esc(tz.names[0])+'"></label>'+
+         '<label class="tz-name b"><input class="nin" id="tzN2" maxlength="12" autocomplete="off" placeholder="Имя — играет жёлтыми" value="'+esc(tz.names[1])+'"></label>'+
+       '</div>'+
+       '<p class="pr-sub">Игры</p>'+
+       '<div class="tz-seg" id="tzMode"><button type="button" data-m="rnd"'+(tz.mode==='rnd'?' class="on"':'')+'>Случайно</button>'+
+         '<button type="button" data-m="pick"'+(tz.mode==='pick'?' class="on"':'')+'>Выбрать самим</button></div>';
+    if(tz.mode==='rnd'){
+      h+='<div class="tz-seg" id="tzCount"><button type="button" data-n="3"'+(tz.count===3?' class="on"':'')+'>3 игры</button>'+
+           '<button type="button" data-n="5"'+(tz.count===5?' class="on"':'')+'>5 игр</button></div>'+
+         '<div class="slist" id="tzDraw">'+tz.draw.map(function(id,k){
+           return '<div class="srow">'+tzIcon(id)+'<span class="n"><b>'+esc(byId(id).title)+'</b><i>'+esc(byId(id).desc)+'</i></span>'+
+                  '<span class="v">'+(k+1)+'</span></div>';
+         }).join('')+'</div>'+
+         '<button class="btn" id="tzShuffle" type="button">Перемешать</button>';
+    }else{
+      h+='<p class="tz-hint">Нажимайте игры в том порядке, в каком будете играть. Нужно хотя бы две</p>'+
+         '<div class="slist" id="tzPick">'+tzPool().map(function(id){
+           var k=tz.pick.indexOf(id);
+           return '<button class="srow tz-pick'+(k>-1?' on':'')+'" type="button" data-g="'+id+'">'+tzIcon(id)+
+                  '<span class="n"><b>'+esc(byId(id).title)+'</b><i>'+esc(byId(id).desc)+'</i></span>'+
+                  '<span class="tz-num">'+(k>-1?k+1:'')+'</span></button>';
+         }).join('')+'</div>';
+    }
+    h+='<p class="tz-hint" id="tzWhy" style="text-align:center;margin-top:12px"></p>'+
+       '<button class="btn primary" id="tzToF" type="button">Дальше — фанты</button>';
+  }else if(tz.step===2 || tz.step===3){
+    /* пишет первый — фант второму; потом наоборот */
+    var w=tz.step===2?0:1, o=1-w;
+    sub.textContent='Фанты пишутся по очереди и прячутся: их откроют только в конце';
+    h+='<div class="tz-who '+(w?'b':'a')+'"><span>Пишет</span><b>'+esc(tz.names[w])+'</b></div>'+
+       '<p class="tz-hint" style="text-align:center">Фант, который выполнит <b>'+esc(tz.names[o])+'</b>, если проиграет турнир. '+
+         esc(tz.names[o])+', не подглядывай!</p>'+
+       '<textarea class="nin tz-f" id="tzF" maxlength="120" placeholder="Например: моет посуду всю неделю"></textarea>'+
+       '<button class="btn" id="tzIdea" type="button">Подсказать</button>'+
+       '<button class="btn primary" id="tzHide" type="button" disabled>'+(w?'Спрятать':'Спрятать и передать телефон')+'</button>'+
+       (w===0?'<button class="tz-back" id="tzBack" type="button">Назад к играм</button>':'');
+  }else{
+    sub.textContent='';
+    h+='<div class="tz-ok">'+CHECK+'Оба фанта спрятаны</div>'+
+       '<p class="tz-hint" style="text-align:center">Их откроют только в конце — проигравшему</p>'+
+       '<div class="slist">'+g.map(function(id,k){
+         return '<div class="srow">'+tzIcon(id)+'<span class="n"><b>'+esc(byId(id).title)+'</b></span><span class="v">'+(k+1)+'</span></div>';
+       }).join('')+'</div>'+
+       '<button class="btn primary" id="tzStart" type="button">Начать турнир</button>';
+  }
+  body.innerHTML=h;
+  try{ tzSheet.scrollTop=0; }catch(e){}
+  wireSetup();
+}
+function tzCheck(){
+  var b=document.getElementById('tzToF'), why=document.getElementById('tzWhy');
+  if(!b) return;
+  var ok=tzReady();
+  b.disabled=!ok;
+  why.textContent = ok ? '' : (!tz.names[0].trim()||!tz.names[1].trim()) ? 'Впишите оба имени — фант достанется конкретному человеку'
+                                                                      : 'Выберите хотя бы две игры';
+}
+function wireSetup(){
+  var el=function(id){ return document.getElementById(id); };
+  if(tz.step===1){
+    ['tzN1','tzN2'].forEach(function(id,k){
+      el(id).addEventListener('input',function(){ tz.names[k]=el(id).value; tzCheck(); });
+      el(id).addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); el(id).blur(); } });
+    });
+    [].forEach.call(document.querySelectorAll('#tzMode button'),function(b){
+      b.addEventListener('click',function(){ tz.mode=b.getAttribute('data-m'); renderSetup(); });
+    });
+    [].forEach.call(document.querySelectorAll('#tzCount button'),function(b){
+      b.addEventListener('click',function(){ tz.count=+b.getAttribute('data-n'); tzShuffle(); renderSetup(); });
+    });
+    if(el('tzShuffle')) el('tzShuffle').addEventListener('click',function(){ tzShuffle(); renderSetup(); });
+    [].forEach.call(document.querySelectorAll('#tzPick .tz-pick'),function(b){
+      b.addEventListener('click',function(){
+        var id=b.getAttribute('data-g'), k=tz.pick.indexOf(id);
+        if(k>-1) tz.pick.splice(k,1); else tz.pick.push(id);
+        renderSetup();
+      });
+    });
+    el('tzToF').addEventListener('click',function(){ if(!tzReady()) return; tz.step=2; renderSetup(); });
+    tzCheck();
+  }else if(tz.step===2 || tz.step===3){
+    var f=el('tzF'), hide=el('tzHide'), w=tz.step===2?0:1;
+    f.addEventListener('input',function(){ hide.disabled=!f.value.trim(); });
+    el('tzIdea').addEventListener('click',function(){
+      f.value=FORFEIT[(Math.random()*FORFEIT.length)|0][2];
+      hide.disabled=false;
+    });
+    hide.addEventListener('click',function(){
+      var v=f.value.replace(/\s+/g,' ').trim();
+      if(!v) return;
+      tz.f[1-w]=v;                       /* пишет w — выполнит соперник */
+      f.value='';
+      try{ f.blur(); }catch(e){}
+      tz.step++;
+      renderSetup();
+      announce(tz.step===3 ? 'Фант спрятан. Передайте телефон' : 'Оба фанта спрятаны');
+    });
+    if(el('tzBack')) el('tzBack').addEventListener('click',function(){ tz.step=1; renderSetup(); });
+  }else{
+    el('tzStart').addEventListener('click',function(){
+      var names=[tz.names[0].trim(), tz.names[1].trim()];
+      /* имена — те же, что в играх: первый — «я», красные; второй — «друг» */
+      DP.names({me:names[0], friend:names[1]});
+      var t=TOUR.start({games:tzGames(), names:names, titles:tzTitles(), pool:tzPool(), f:tz.f});
+      tz={step:1, mode:tz.mode, count:tz.count, draw:[], pick:[], f:['',''], names:['','']};
+      location.href=TOUR.link(t);
+    });
+  }
+}
+
+/* ---------- итог ---------- */
+function openEnd(){
+  var t=TOUR.read();
+  if(!t || !TOUR.over(t)) return;
+  var w=TOUR.winner(t), l=3-w, s=TOUR.score(t), plan=TOUR.planned(t), rows='';
+  document.getElementById('teMedal').className='tz-medal'+(w===2?' b':'');
+  document.getElementById('teTitle').textContent='Победа: '+t.names[w-1];
+  document.getElementById('teSub').textContent='Турнир '+s[0]+' : '+s[1]+' · '+t.games.length+' '+plural(t.games.length,'игра','игры','игр')+
+    (t.tb ? ' · с решающей' : '');
+  t.games.forEach(function(g,i){
+    var r=t.res[i];
+    rows+='<div class="srow">'+tzIcon(g)+'<span class="n"><b>'+esc(TOUR.title(t,g))+'</b>'+
+      (i>=plan?'<i>решающая</i>':'')+'</span>'+
+      '<span class="tz-res'+(r===1?' a':r===2?' b':'')+'">'+esc(r ? t.names[r-1] : 'ничья')+'</span></div>';
+  });
+  document.getElementById('teBody').innerHTML=
+    '<div class="slist">'+rows+'</div>'+
+    '<button class="tz-reveal'+(l===2?' b':'')+'" id="teReveal" type="button">'+
+      '<span class="tz-cover">Открыть фант<em>'+esc(t.names[l-1])+', готовься</em></span>'+
+      '<span class="tz-open"></span>'+
+    '</button>'+
+    '<button class="tz-second" id="teSecond" type="button" hidden>Показать второй фант — он не пригодился</button>';
+  var rv=document.getElementById('teReveal'), sc=document.getElementById('teSecond');
+  rv.addEventListener('click',function(){
+    if(rv.classList.contains('shown')) return;
+    /* текст фанта попадает на страницу только сейчас — до нажатия его нет нигде, даже в разметке */
+    rv.querySelector('.tz-open').innerHTML='<i>'+esc(t.names[l-1])+' выполняет фант</i><b>«'+esc(t.f[l-1])+'»</b><em>придумано соперником</em>';
+    rv.classList.add('shown'); sc.hidden=false;
+    FX.fire([14,60,26],'success');
+    announce(t.names[l-1]+' выполняет фант: '+t.f[l-1]);
+  });
+  sc.addEventListener('click',function(){
+    sc.innerHTML='А это ждало бы: <b>'+esc(t.names[w-1])+'</b> — «'+esc(t.f[w-1])+'»';
+  });
+  backdrop.classList.add('on'); tzEnd.classList.add('on');
+}
+function closeEnd(){ tzEnd.classList.remove('on'); backdrop.classList.remove('on'); }
+document.getElementById('teDone').addEventListener('click',function(){ TOUR.write(null); closeEnd(); renderTour(); });
+document.getElementById('teAgain').addEventListener('click',function(){
+  TOUR.write(null); tzEnd.classList.remove('on'); renderTour();
+  openSetup(true);
+});
+
 /* ---------- статистика ---------- */
 var sheetEl=document.getElementById('sheet');
 var backdrop=document.getElementById('backdrop');
@@ -1561,17 +1939,16 @@ try{
 
 document.getElementById('statBtn').addEventListener('click',openStats);
 document.getElementById('statClose').addEventListener('click',closeStats);
-backdrop.addEventListener('click',function(){
+/* одна подложка на все шторки: закрывает ту, что открыта */
+function closeTop(){
   if(whoSheet.classList.contains('on')) closeWho();
   else if(pairSheet.classList.contains('on')) closePair();
+  else if(tzSheet.classList.contains('on')) closeSetup();
+  else if(tzEnd.classList.contains('on')) closeEnd();
   else closeStats();
-});
-document.addEventListener('keydown',function(e){
-  if(e.key!=='Escape') return;
-  if(whoSheet.classList.contains('on')) closeWho();
-  else if(pairSheet.classList.contains('on')) closePair();
-  else closeStats();
-});
+}
+backdrop.addEventListener('click',closeTop);
+document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeTop(); });
 resetBtn.addEventListener('click',function(){
   if(!resetArmed){ resetArmed=true; resetBtn.textContent='Точно сбросить?'; return; }
   DP.clear(); renderStats(); renderRecent(); renderPair();
@@ -1579,8 +1956,14 @@ resetBtn.addEventListener('click',function(){
 
 renderHero();
 renderPair();
+renderTour();
 renderRecent();
 renderBento();
+/* вернулись из последней игры турнира — сразу итог */
+(function(){
+  var m=/[?&]tour=(\d+)/.exec(location.search), t=TOUR.read();
+  if(m && t && t.id===+m[1] && TOUR.over(t)) setTimeout(openEnd,350);
+})();
 })();
 </script>
 </body>
