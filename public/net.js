@@ -120,7 +120,11 @@ var NET = (function(){
       'box-shadow:0 -8px 40px rgba(0,0,0,.18);transform:translateY(101%);',
       'transition:transform .5s var(--spring,cubic-bezier(.32,.72,0,1));',
       'font:400 17px/1.3 -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif}',
-    '.np-open .np-sheet{transform:translateY(0)}',
+    '.np-open .np-sheet{transform:none}',
+    /* клавиатура телефона открыта: шторка встаёт над ней (см. keyboard() ниже) */
+    'html.np-kb .np-sheet{bottom:var(--np-kb,0px);max-height:calc(var(--np-vh,100vh) - 8px);overflow-y:auto;',
+      'padding-bottom:16px}',
+    'html.np-kb .np-sub{display:none}',
     '.np-grab{width:36px;height:5px;border-radius:3px;background:var(--fill);margin:0 auto 18px}',
     '.np-sheet h2{font-size:24px;font-weight:700;letter-spacing:-.45px;margin:0 0 5px}',
     '.np-sub{font-size:15px;color:var(--label2);margin:0 0 22px;letter-spacing:-.1px}',
@@ -128,11 +132,13 @@ var NET = (function(){
     '.np-code{font:700 42px/1 -apple-system,system-ui,sans-serif;letter-spacing:10px;text-indent:10px;',
       'font-variant-numeric:tabular-nums;margin:0 0 18px}',
     '.np-in{display:block;width:100%;margin:0 0 16px;padding:15px 0;border:0;border-radius:14px;',
+      '-webkit-appearance:none;appearance:none;',
       'background:var(--fill);color:var(--label);text-align:center;text-indent:10px;outline:none;',
       'font:700 32px/1 -apple-system,system-ui,sans-serif;letter-spacing:10px;',
       'font-variant-numeric:tabular-nums;-webkit-user-select:text;user-select:text}',
     '.np-in::placeholder{color:var(--label3);letter-spacing:10px}',
     '.np-name{display:block;width:100%;margin:0 0 12px;padding:14px 16px;border:0;border-radius:14px;',
+      '-webkit-appearance:none;appearance:none;',
       'background:var(--fill);color:var(--label);text-align:center;outline:none;',
       'font:500 17px/1 -apple-system,system-ui,sans-serif;letter-spacing:-.2px;',
       '-webkit-user-select:text;user-select:text}',
@@ -192,6 +198,33 @@ var NET = (function(){
     '</aside>' +
     '<div class="np-warn" id="npWarn"></div>';
 
+  /* Клавиатура телефона не двигает шторку, прижатую к низу: на iPhone (в
+     Safari и в Telegram) и в новом Chrome на Android она ложится поверх, и
+     поле имени или кода уходит под неё. Пока лобби открыто и клавиатура
+     поднята, шторка встаёт над ней и ужимается до видимой части экрана —
+     её размер знает visualViewport. То же самое, что у шторок главного экрана. */
+  function keyboard(){
+    var vv = window.visualViewport, root = document.documentElement;
+    if (!vv) return;
+    function fit(){
+      var kb = Math.round(window.innerHeight - vv.height - vv.offsetTop);
+      if (kb < 80 || !document.body.classList.contains('np-open')) kb = 0;
+      root.classList.toggle('np-kb', kb > 0);
+      root.style.setProperty('--np-kb', kb + 'px');
+      root.style.setProperty('--np-vh', Math.round(vv.height) + 'px');
+      if (!kb){ if (window.scrollY) window.scrollTo(0, 0); return; }
+      var a = document.activeElement, pad = 12, r, sr;
+      if (!a || !el.sheet.contains(a)) return;
+      r = a.getBoundingClientRect(); sr = el.sheet.getBoundingClientRect();
+      if (r.bottom > sr.bottom - pad) el.sheet.scrollTop += r.bottom - (sr.bottom - pad);
+      else if (r.top < sr.top + pad) el.sheet.scrollTop -= (sr.top + pad) - r.top;
+    }
+    vv.addEventListener('resize', fit);
+    vv.addEventListener('scroll', fit);
+    document.addEventListener('focusin', function(){ setTimeout(fit, 80); setTimeout(fit, 400); });
+    document.addEventListener('focusout', function(){ setTimeout(fit, 80); setTimeout(fit, 400); });
+  }
+
   function build(){
     if (el.sheet) return;
     var st = document.createElement('style');
@@ -206,6 +239,8 @@ var NET = (function(){
            code:id('npCode'), input:id('npInput'), join:id('npJoin'), make:id('npNew'),
            name:id('npName'), warn:id('npWarn'),
            panes:{ pick:id('npPick'), wait:id('npWait'), enter:id('npEnter') } };
+
+    keyboard();
 
     /* имя сохраняем сразу, чтобы оно подставилось и в следующий раз, и в играх */
     el.name.value = myName();

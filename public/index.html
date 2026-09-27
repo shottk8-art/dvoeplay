@@ -561,7 +561,7 @@ a.btn{text-decoration:none;text-align:center}
 .tz-who b{display:flex;align-items:center;gap:8px;font-size:26px;font-weight:700;letter-spacing:-.6px}
 .tz-who b::before{content:"";width:13px;height:13px;border-radius:50%;background:linear-gradient(180deg,var(--red-a),var(--red-b))}
 .tz-who.b b::before{background:linear-gradient(180deg,var(--yel-a),var(--yel-b))}
-textarea.nin{min-height:96px;resize:none;line-height:1.35;font-weight:500}
+textarea.nin{height:96px;min-height:96px;resize:none;line-height:1.35;font-weight:500;overflow-y:auto}
 .tz-f{margin:0 0 10px}
 .tz-back{display:block;margin:10px auto 0;padding:6px 10px;border:0;background:none;color:var(--tint);font:inherit;font-size:15px;cursor:pointer}
 .tz-ok{display:flex;align-items:center;justify-content:center;gap:8px;margin:2px 0 6px;font-size:17px;font-weight:700;letter-spacing:-.3px}
@@ -608,7 +608,13 @@ textarea.nin{min-height:96px;resize:none;line-height:1.35;font-weight:500}
   max-height:86vh;overflow-y:auto;overflow-x:hidden;
   box-shadow:0 -10px 40px rgba(0,0,0,.22);
 }
-.sheet.on{transform:translateY(0)}
+.sheet.on{transform:none}
+/* Открыта клавиатура телефона. Она ложится поверх шторки, прижатой к низу,
+   поэтому шторка встаёт над ней и ужимается до видимой части экрана; пояснение
+   под заголовком на это время убирается — место нужнее полю. --kb и --vh
+   ставит скрипт по visualViewport. */
+html.kb .sheet.on{bottom:var(--kb,0px);max-height:calc(var(--vh,86vh) - 8px);padding-bottom:14px}
+html.kb .sheet.on .sub{display:none}
 .grab{width:36px;height:5px;border-radius:3px;background:var(--label3);margin:0 auto 12px}
 .sheet h2{margin:0 0 3px;text-align:center;font-size:21px;font-weight:700;letter-spacing:-.4px}
 .sheet .sub{margin:0 0 16px;text-align:center;font-size:13.5px;color:var(--label2)}
@@ -630,6 +636,7 @@ textarea.nin{min-height:96px;resize:none;line-height:1.35;font-weight:500}
 .nlab{display:block;margin:0 4px 6px;font-size:13px;color:var(--label2);letter-spacing:-.05px}
 .nin{
   display:block;width:100%;margin:0 0 14px;padding:13px 15px;border:0;border-radius:14px;
+  -webkit-appearance:none;appearance:none;
   background:var(--surface);color:var(--label);box-shadow:var(--card-shadow);
   font:500 17px/1 -apple-system,system-ui,sans-serif;letter-spacing:-.2px;outline:none;
   -webkit-user-select:text;user-select:text;
@@ -1732,10 +1739,12 @@ function wireSetup(){
     tzCheck();
   }else if(tz.step===2 || tz.step===3){
     var f=el('tzF'), hide=el('tzHide'), w=tz.step===2?0:1;
-    f.addEventListener('input',function(){ hide.disabled=!f.value.trim(); });
+    /* поле растёт вместе с текстом, а не прокручивает его внутри себя */
+    var grow=function(){ f.style.height='auto'; f.style.height=Math.min(Math.max(f.scrollHeight,96),168)+'px'; };
+    f.addEventListener('input',function(){ hide.disabled=!f.value.trim(); grow(); });
     el('tzIdea').addEventListener('click',function(){
       f.value=FORFEIT[(Math.random()*FORFEIT.length)|0][2];
-      hide.disabled=false;
+      hide.disabled=false; grow();
     });
     hide.addEventListener('click',function(){
       var v=f.value.replace(/\s+/g,' ').trim();
@@ -1949,6 +1958,40 @@ function closeTop(){
 }
 backdrop.addEventListener('click',closeTop);
 document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeTop(); });
+
+/* ---------- клавиатура и шторки ---------- */
+/* Шторки прижаты к низу экрана, а клавиатура телефона их не двигает: на
+   iPhone (в Safari и в Telegram) и в новом Chrome на Android она ложится
+   поверх. Поле, в которое пишут (фант, имена), уходило под неё, а iPhone,
+   пытаясь его показать, сдвигал весь экран — поле ввода выглядело сломанным.
+   Теперь, пока клавиатура открыта, открытая шторка встаёт над ней и
+   ужимается до видимой части экрана, а поле с курсором прокручивается в
+   виду. Сколько экрана видно, знает visualViewport; где его нет, всё как
+   раньше. */
+(function(){
+  var vv=window.visualViewport, root=document.documentElement;
+  if(!vv) return;
+  function fit(){
+    /* высота клавиатуры: низ макета минус низ видимой части */
+    var kb=Math.round(window.innerHeight - vv.height - vv.offsetTop);
+    if(kb<80) kb=0;                        /* это панели браузера, а не клавиатура */
+    root.classList.toggle('kb',kb>0);
+    root.style.setProperty('--kb',kb+'px');
+    root.style.setProperty('--vh',Math.round(vv.height)+'px');
+    if(!kb){ if(window.scrollY) window.scrollTo(0,0); return; }   /* iPhone мог сдвинуть страницу — возвращаем */
+    var sh=document.querySelector('.sheet.on'), a=document.activeElement, pad=12, r, sr;
+    if(!sh || !a || !sh.contains(a)) return;
+    r=a.getBoundingClientRect(); sr=sh.getBoundingClientRect();
+    if(r.bottom>sr.bottom-pad) sh.scrollTop+=r.bottom-(sr.bottom-pad);
+    else if(r.top<sr.top+pad) sh.scrollTop-=(sr.top+pad)-r.top;
+  }
+  vv.addEventListener('resize',fit);
+  vv.addEventListener('scroll',fit);
+  /* клавиатура выезжает с анимацией, а событие о размере приходит не всегда
+     вовремя — проверяем ещё раз, когда она точно встала или ушла */
+  document.addEventListener('focusin',function(){ setTimeout(fit,80); setTimeout(fit,400); });
+  document.addEventListener('focusout',function(){ setTimeout(fit,80); setTimeout(fit,400); });
+})();
 resetBtn.addEventListener('click',function(){
   if(!resetArmed){ resetArmed=true; resetBtn.textContent='Точно сбросить?'; return; }
   DP.clear(); renderStats(); renderRecent(); renderPair();
