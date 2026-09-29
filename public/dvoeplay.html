@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1C1C1E" media="(prefers-color-scheme: dark)">
 <script>
@@ -77,10 +77,21 @@ if('serviceWorker' in navigator && location.protocol!=='file:'){
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<meta name="description" content="dvoeplay — игры для двоих. 4 в ряд на одном телефоне, по сети или против ИИ.">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <title>dvoeplay — 4 в ряд</title>
+<meta name="description" content="Соберите четыре фишки в ряд раньше соперника. Игра для двоих: на одном телефоне, по сети или против ИИ.">
+<!-- превью ссылки в Telegram, WhatsApp и других мессенджерах: без этого приглашение
+     в сетевую игру приходит голой ссылкой. Картинка — по полному адресу, иначе не покажут -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="dvoeplay">
+<meta property="og:locale" content="ru_RU">
+<meta property="og:title" content="4 в ряд — dvoeplay">
+<meta property="og:description" content="Соберите четыре фишки в ряд раньше соперника. Игра для двоих: на одном телефоне, по сети или против ИИ.">
+<meta property="og:image" content="https://dvoeplay.netlify.app/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <style>
 :root{
   color-scheme:light;      /* поля ввода и полосы прокрутки тоже светлые */
@@ -136,6 +147,11 @@ if('serviceWorker' in navigator && location.protocol!=='file:'){
   }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden}
+/* Повернули телефон боком и обратно — текст и всё, что от него зависит, стали
+   крупнее: iPhone в альбомной ориентации сам увеличивает шрифт («автоподбор
+   текста») и обратно его не возвращает. Размеры здесь подобраны под экран —
+   автоподбор выключен. */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{
   background:var(--bg);
   color:var(--label);
@@ -167,12 +183,18 @@ body.playing #menu::after{opacity:.2}
 body.playing #game{transform:translateX(0);pointer-events:auto}
 
 /* ---------- меню ---------- */
-.brand{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:0}
+#menu{overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+#menu>*{flex-shrink:0}
+/* Ничто в меню не сжимается меньше своего содержимого: на низком экране
+   (iPhone SE в Safari — 375×548) меню прокручивается, а не сплющивает
+   заставку в полоску и не наезжает подписью на заголовок списка. */
+.brand{flex:1 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .mini{
   width:min(62%,216px);aspect-ratio:5/2;
   display:grid;grid-template-columns:repeat(5,1fr);grid-template-rows:repeat(2,1fr);
   background:var(--surface);border-radius:18px;overflow:hidden;
   box-shadow:var(--card-shadow);margin-bottom:30px;
+  flex:none;
 }
 .mini .c{position:relative;display:grid;place-items:center}
 .mini .c::after{content:"";width:72%;aspect-ratio:1;border-radius:50%;background:var(--well)}
@@ -264,6 +286,13 @@ body.playing #game{transform:translateX(0);pointer-events:auto}
   background:var(--surface);border-radius:24px;box-shadow:var(--card-shadow);
   touch-action:none;outline:none;
 }
+/* Поле вписывается в место целиком: когда тесно по высоте (телефон боком),
+   сужается и ширина — иначе max-height ломал пропорцию, лунки сплющивались
+   и нижний ряд уходил под край поля. Без контейнерных единиц — как раньше. */
+@supports (width:1cqh){
+  .stage{container-type:size}
+  .board{width:min(100cqw,430px,100cqh*7/6);max-width:none;max-height:none}
+}
 .board:focus-visible{box-shadow:var(--card-shadow),0 0 0 4px color-mix(in srgb,var(--tint) 45%,transparent)}
 .cell{position:relative;display:grid;place-items:center}
 .cell::after{content:"";width:76%;aspect-ratio:1;border-radius:50%;background:var(--well);box-shadow:inset 0 1px 2px rgba(0,0,0,.05)}
@@ -294,11 +323,13 @@ body.playing #game{transform:translateX(0);pointer-events:auto}
 
 /* ---------- итоговая шторка ---------- */
 .backdrop{position:fixed;inset:0;background:rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .4s ease;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+/* закрытая шторка уезжает за край вместе со своей тенью: сдвинутая только
+   на свою высоту, она оставляла тень на виду — серую полосу по низу экрана */
 .sheet{
   position:fixed;left:0;right:0;bottom:0;z-index:2;max-width:520px;margin:0 auto;
   background:var(--surface);border-radius:26px 26px 0 0;
   padding:10px 20px calc(22px + env(safe-area-inset-bottom));
-  transform:translateY(101%);transition:transform .5s var(--spring);
+  transform:translateY(calc(100% + 60px));transition:transform .5s var(--spring);
   box-shadow:0 -8px 40px rgba(0,0,0,.18);text-align:center;
 }
 .open .backdrop{opacity:1;pointer-events:auto}
@@ -331,7 +362,9 @@ body.playing #game{transform:translateX(0);pointer-events:auto}
 .playing-net #reset{display:none}   /* по сети раунд начинается по согласию обоих */
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
-@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.06s !important}}
+/* число повторов обязательно: бесконечная анимация (точки ожидания), сжатая
+   до сотой миллисекунды, не замирает, а мерцает */
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.06s !important}}
 @media (max-height:660px){
   .wordmark{width:min(205px,72%)}
   .mini{margin-bottom:22px}
@@ -612,6 +645,8 @@ function netHint(){
   hint.textContent = turn===net.seat ? 'Ваш ход' : 'Ход соперника';
 }
 
+/* имя приходит и от соперника по сети — в разметку только экранированным */
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function updateTurn(){
   slider.style.transform='translateX('+(turn===1?0:100)+'%)';
   slider.style.opacity = over ? '0' : '1';
@@ -620,7 +655,7 @@ function updateTurn(){
   var n=names(), i;
   for(i=1;i<=2;i++){
     document.getElementById('name'+i).innerHTML =
-      n[i-1] + (wait===i ? ' <span class="dots"><i></i><i></i><i></i></span>' : '');
+      esc(n[i-1]) + (wait===i ? ' <span class="dots"><i></i><i></i><i></i></span>' : '');
   }
 }
 

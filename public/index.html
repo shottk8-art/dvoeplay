@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1C1C1E" media="(prefers-color-scheme: dark)">
 <script>
@@ -71,7 +71,6 @@ if('serviceWorker' in navigator && location.protocol!=='file:'){
   document.head.appendChild(s);
 })();
 </script>
-<meta name="description" content="dvoeplay — сборник игр для двоих на одном телефоне: 4 в ряд, Матрёшка, 5 букв, Мемо-дуэль, Доббль, Взломщик кода и другие.">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="dvoeplay">
@@ -79,6 +78,18 @@ if('serviceWorker' in navigator && location.protocol!=='file:'){
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>dvoeplay — игры для двоих</title>
+<meta name="description" content="Десять игр для двоих — на одном телефоне и по сети: 4 в ряд, Матрёшка, Доббль, 5 букв, Взломщик кода и другие. Бесплатно, без регистрации.">
+<!-- превью ссылки в Telegram, WhatsApp и других мессенджерах: без этого приглашение
+     в сетевую игру приходит голой ссылкой. Картинка — по полному адресу, иначе не покажут -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="dvoeplay">
+<meta property="og:locale" content="ru_RU">
+<meta property="og:title" content="dvoeplay — игры для двоих">
+<meta property="og:description" content="Десять игр для двоих — на одном телефоне и по сети: 4 в ряд, Матрёшка, Доббль, 5 букв, Взломщик кода и другие. Бесплатно, без регистрации.">
+<meta property="og:image" content="https://dvoeplay.netlify.app/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <style>
@@ -128,6 +139,11 @@ if('serviceWorker' in navigator && location.protocol!=='file:'){
    уже есть, — всё равно оставались на экране. */
 [hidden]{display:none!important}
 html,body{height:100%;margin:0;overflow:hidden;overscroll-behavior:none}
+/* Повернули телефон боком и обратно — текст и всё, что от него зависит, стали
+   крупнее: iPhone в альбомной ориентации сам увеличивает шрифт («автоподбор
+   текста») и обратно его не возвращает. Размеры здесь подобраны под экран —
+   автоподбор выключен. */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{
   background:var(--bg); color:var(--label);
   font:400 17px/1.4 -apple-system,BlinkMacSystemFont,system-ui,"Segoe UI",sans-serif;
@@ -599,22 +615,28 @@ textarea.nin{height:96px;min-height:96px;resize:none;line-height:1.35;font-weigh
   transition:opacity .3s ease;z-index:9;
 }
 .backdrop.on{opacity:1;pointer-events:auto}
+/* закрытая шторка уезжает за край вместе со своей тенью: сдвинутая только
+   на свою высоту, она оставляла тень на виду — серую полосу по низу экрана */
 .sheet{
   position:fixed;left:0;right:0;bottom:0;z-index:10;
   max-width:min(520px,100%);margin:0 auto;
   background:var(--bg);border-radius:22px 22px 0 0;
   padding:8px 18px calc(env(safe-area-inset-bottom) + 16px);
-  transform:translateY(102%);transition:transform .42s var(--ease);
+  transform:translateY(calc(100% + 60px));transition:transform .42s var(--ease);
   max-height:86vh;overflow-y:auto;overflow-x:hidden;
   box-shadow:0 -10px 40px rgba(0,0,0,.22);
 }
 .sheet.on{transform:none}
-/* Открыта клавиатура телефона. Она ложится поверх шторки, прижатой к низу,
-   поэтому шторка встаёт над ней и ужимается до видимой части экрана; пояснение
-   под заголовком на это время убирается — место нужнее полю. --kb и --vh
-   ставит скрипт по visualViewport. */
-html.kb .sheet.on{bottom:var(--kb,0px);max-height:calc(var(--vh,86vh) - 8px);padding-bottom:14px}
-html.kb .sheet.on .sub{display:none}
+/* В шторке набирают текст (фант, имена). Клавиатура телефона ложится поверх
+   низа экрана, а шторка прижата к низу — поле уходило под клавиатуру. Высоту
+   клавиатуры честно не узнать: iPhone, Telegram и Android сообщают её
+   по-разному. Поэтому, пока в шторке открыто поле ввода, она стоит у ВЕРХНЕГО
+   края экрана: туда клавиатура не достаёт, и телефону не нужно ничего
+   сдвигать. Заголовок и пояснение на это время убираются — место нужнее полю. */
+.sheet.on.typing{top:calc(env(safe-area-inset-top) + 8px);bottom:auto;left:8px;right:8px;border-radius:22px;
+  max-height:calc(100% - env(safe-area-inset-top) - 16px);padding-top:14px;padding-bottom:14px;animation:typing .2s ease}
+.sheet.on.typing .grab,.sheet.on.typing h2,.sheet.on.typing .sub{display:none}
+@keyframes typing{from{opacity:.35}}
 .grab{width:36px;height:5px;border-radius:3px;background:var(--label3);margin:0 auto 12px}
 .sheet h2{margin:0 0 3px;text-align:center;font-size:21px;font-weight:700;letter-spacing:-.4px}
 .sheet .sub{margin:0 0 16px;text-align:center;font-size:13.5px;color:var(--label2)}
@@ -661,7 +683,7 @@ html.kb .sheet.on .sub{display:none}
   .hero p{font-size:15px}
 }
 @media (prefers-reduced-motion: reduce){
-  *{animation-duration:.001s!important;animation-iteration-count:1!important;transition-duration:.06s!important}
+  *,*::before,*::after{animation-duration:.001s!important;animation-iteration-count:1!important;transition-duration:.06s!important}
 }
 </style>
 </head>
@@ -718,9 +740,9 @@ html.kb .sheet.on .sub{display:none}
   <h2 id="whoTitle">Имена игроков</h2>
   <p class="sub">Подставятся в табло, итоги и фанты — во всех играх</p>
   <label class="nlab" for="nameMe">Вы</label>
-  <input class="nin" id="nameMe" type="text" maxlength="12" autocomplete="off" placeholder="Например, Карл">
+  <input class="nin" id="nameMe" type="text" maxlength="12" autocomplete="off" enterkeyhint="done" placeholder="Например, Карл">
   <label class="nlab" for="nameFriend">Друг — когда играете на одном телефоне</label>
-  <input class="nin" id="nameFriend" type="text" maxlength="12" autocomplete="off" placeholder="Например, Аня">
+  <input class="nin" id="nameFriend" type="text" maxlength="12" autocomplete="off" enterkeyhint="done" placeholder="Например, Аня">
   <p class="sub" style="margin:14px 0 0">По сети имя соперника придёт из его телефона</p>
   <button class="btn primary" id="whoClose" type="button">Готово</button>
 </aside>
@@ -1654,7 +1676,7 @@ function openSetup(fresh){
   renderSetup();
   backdrop.classList.add('on'); tzSheet.classList.add('on');
 }
-function closeSetup(){ tzSheet.classList.remove('on'); backdrop.classList.remove('on'); }
+function closeSetup(){ unType(tzSheet); tzSheet.classList.remove('on'); backdrop.classList.remove('on'); }
 function tzReady(){ return tzGames().length>=2; }
 /* keep — перерисовка того же шага (перемешали, сменили число игр): шторка
    остаётся там, где её пролистали; новый шаг начинается сверху */
@@ -1691,7 +1713,7 @@ function renderSetup(keep){
     h+='<div class="tz-who '+(w?'b':'a')+'"><span>'+tzV(w,'Пишет','Пишут')+'</span><b>'+esc(tzNm(w))+'</b></div>'+
        '<p class="tz-hint" style="text-align:center">Фант, который '+tzV(o,'выполнит','выполнят')+' <b>'+esc(tzLow(o))+'</b>, '+
          'если '+tzV(o,'проиграет','проиграют')+' турнир. '+esc(tzNm(o))+', не '+tzV(o,'подглядывай','подглядывайте')+'!</p>'+
-       '<textarea class="nin tz-f" id="tzF" maxlength="120" placeholder="Например: моет посуду всю неделю"></textarea>'+
+       '<textarea class="nin tz-f" id="tzF" maxlength="120" enterkeyhint="done" placeholder="Например: моет посуду всю неделю"></textarea>'+
        '<button class="btn" id="tzIdea" type="button">Подсказать</button>'+
        '<button class="btn primary" id="tzHide" type="button" disabled>'+(w?'Спрятать':'Спрятать и передать телефон')+'</button>'+
        (w===0?'<button class="tz-back" id="tzBack" type="button">Назад к играм</button>':'');
@@ -1742,6 +1764,8 @@ function wireSetup(){
     /* поле растёт вместе с текстом, а не прокручивает его внутри себя */
     var grow=function(){ f.style.height='auto'; f.style.height=Math.min(Math.max(f.scrollHeight,96),168)+'px'; };
     f.addEventListener('input',function(){ hide.disabled=!f.value.trim(); grow(); });
+    /* фант — одна фраза: «Готово» на клавиатуре заканчивает набор, а не переносит строку */
+    f.addEventListener('keydown',function(e){ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); try{ f.blur(); }catch(err){} } });
     el('tzIdea').addEventListener('click',function(){
       f.value=FORFEIT[(Math.random()*FORFEIT.length)|0][2];
       hide.disabled=false; grow();
@@ -1878,6 +1902,7 @@ function openWho(){
 }
 function closeWho(){
   saveWho();
+  unType(whoSheet);
   try{ meEl.blur(); friendEl.blur(); }catch(e){}
   backdrop.classList.remove('on'); whoSheet.classList.remove('on');
   renderRecent(); renderPair(); renderTour();
@@ -1959,39 +1984,36 @@ function closeTop(){
 backdrop.addEventListener('click',closeTop);
 document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeTop(); });
 
-/* ---------- клавиатура и шторки ---------- */
-/* Шторки прижаты к низу экрана, а клавиатура телефона их не двигает: на
-   iPhone (в Safari и в Telegram) и в новом Chrome на Android она ложится
-   поверх. Поле, в которое пишут (фант, имена), уходило под неё, а iPhone,
-   пытаясь его показать, сдвигал весь экран — поле ввода выглядело сломанным.
-   Теперь, пока клавиатура открыта, открытая шторка встаёт над ней и
-   ужимается до видимой части экрана, а поле с курсором прокручивается в
-   виду. Сколько экрана видно, знает visualViewport; где его нет, всё как
-   раньше. */
-(function(){
-  var vv=window.visualViewport, root=document.documentElement;
-  if(!vv) return;
-  function fit(){
-    /* высота клавиатуры: низ макета минус низ видимой части */
-    var kb=Math.round(window.innerHeight - vv.height - vv.offsetTop);
-    if(kb<80) kb=0;                        /* это панели браузера, а не клавиатура */
-    root.classList.toggle('kb',kb>0);
-    root.style.setProperty('--kb',kb+'px');
-    root.style.setProperty('--vh',Math.round(vv.height)+'px');
-    if(!kb){ if(window.scrollY) window.scrollTo(0,0); return; }   /* iPhone мог сдвинуть страницу — возвращаем */
-    var sh=document.querySelector('.sheet.on'), a=document.activeElement, pad=12, r, sr;
-    if(!sh || !a || !sh.contains(a)) return;
-    r=a.getBoundingClientRect(); sr=sh.getBoundingClientRect();
-    if(r.bottom>sr.bottom-pad) sh.scrollTop+=r.bottom-(sr.bottom-pad);
-    else if(r.top<sr.top+pad) sh.scrollTop-=(sr.top+pad)-r.top;
-  }
-  vv.addEventListener('resize',fit);
-  vv.addEventListener('scroll',fit);
-  /* клавиатура выезжает с анимацией, а событие о размере приходит не всегда
-     вовремя — проверяем ещё раз, когда она точно встала или ушла */
-  document.addEventListener('focusin',function(){ setTimeout(fit,80); setTimeout(fit,400); });
-  document.addEventListener('focusout',function(){ setTimeout(fit,80); setTimeout(fit,400); });
-})();
+/* ---------- поле ввода в шторке ---------- */
+/* Пока в шторке набирают текст, у неё класс typing — она стоит у верхнего
+   края экрана (см. стили). Первая попытка (27.09) поднимала шторку ровно на
+   высоту клавиатуры по visualViewport — на телефоне пользователя это уносило
+   всё за край экрана: высоту клавиатуры iPhone, Telegram и Android считают
+   по-разному. Верхний край от клавиатуры не зависит вовсе. */
+var FIELD='input,textarea';
+function sheetOf(t){ return t && t.closest ? t.closest('.sheet') : null; }
+document.addEventListener('focusin',function(e){
+  var sh=sheetOf(e.target);
+  if(sh && e.target.matches(FIELD)) sh.classList.add('typing');
+});
+document.addEventListener('focusout',function(e){
+  var sh=sheetOf(e.target);
+  if(!sh) return;
+  /* Не сразу: нажатие на кнопку шторки должно попасть туда, куда целились, а
+     переход к соседнему полю — не дёргать шторку вниз и обратно. */
+  setTimeout(function(){
+    var a=document.activeElement;
+    if(a && sh.contains(a) && a.matches(FIELD)) return;
+    sh.classList.remove('typing');
+    if(window.scrollY) window.scrollTo(0,0);      /* iPhone мог сдвинуть страницу, пока была клавиатура */
+  },200);
+});
+/* шторку закрыли посреди набора — поле отпускаем, клавиатура уходит */
+function unType(sh){
+  var a=document.activeElement;
+  if(a && sh.contains(a)) try{ a.blur(); }catch(e){}
+  sh.classList.remove('typing');
+}
 resetBtn.addEventListener('click',function(){
   if(!resetArmed){ resetArmed=true; resetBtn.textContent='Точно сбросить?'; return; }
   DP.clear(); renderStats(); renderRecent(); renderPair();

@@ -117,14 +117,15 @@ var NET = (function(){
     '.np-sheet{position:fixed;left:0;right:0;bottom:0;z-index:41;max-width:520px;margin:0 auto;',
       'background:var(--surface);color:var(--label);border-radius:26px 26px 0 0;',
       'padding:10px 20px calc(22px + env(safe-area-inset-bottom));text-align:center;',
-      'box-shadow:0 -8px 40px rgba(0,0,0,.18);transform:translateY(101%);',
+      'box-shadow:0 -8px 40px rgba(0,0,0,.18);transform:translateY(calc(100% + 60px));',   /* с тенью за край, иначе она полосой лежит по низу экрана */
       'transition:transform .5s var(--spring,cubic-bezier(.32,.72,0,1));',
       'font:400 17px/1.3 -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif}',
     '.np-open .np-sheet{transform:none}',
-    /* клавиатура телефона открыта: шторка встаёт над ней (см. keyboard() ниже) */
-    'html.np-kb .np-sheet{bottom:var(--np-kb,0px);max-height:calc(var(--np-vh,100vh) - 8px);overflow-y:auto;',
-      'padding-bottom:16px}',
-    'html.np-kb .np-sub{display:none}',
+    /* пока в лобби набирают имя или код, шторка стоит у верхнего края экрана:
+       клавиатура телефона ложится поверх низа, а верх она не достаёт */
+    '.np-open .np-sheet.np-typing{top:calc(env(safe-area-inset-top) + 8px);bottom:auto;left:8px;right:8px;',
+      'border-radius:26px;padding-top:16px;padding-bottom:16px}',
+    '.np-typing .np-grab,.np-typing .np-sub{display:none}',
     '.np-grab{width:36px;height:5px;border-radius:3px;background:var(--fill);margin:0 auto 18px}',
     '.np-sheet h2{font-size:24px;font-weight:700;letter-spacing:-.45px;margin:0 0 5px}',
     '.np-sub{font-size:15px;color:var(--label2);margin:0 0 22px;letter-spacing:-.1px}',
@@ -177,7 +178,7 @@ var NET = (function(){
       '<h2 id="npTitle">Игра по сети</h2>' +
       '<p class="np-sub" id="npSub">Один создаёт комнату, второй входит по коду</p>' +
       '<div class="np-pane" id="npPick">' +
-        '<input class="np-name" id="npName" type="text" maxlength="12" autocomplete="off" ' +
+        '<input class="np-name" id="npName" type="text" maxlength="12" autocomplete="off" enterkeyhint="done" ' +
                'placeholder="Ваше имя" aria-label="Ваше имя">' +
         '<button class="np-go" id="npNew" type="button">Создать комнату</button>' +
         '<button class="np-alt" id="npHas" type="button">У меня есть код</button>' +
@@ -198,31 +199,18 @@ var NET = (function(){
     '</aside>' +
     '<div class="np-warn" id="npWarn"></div>';
 
-  /* Клавиатура телефона не двигает шторку, прижатую к низу: на iPhone (в
-     Safari и в Telegram) и в новом Chrome на Android она ложится поверх, и
-     поле имени или кода уходит под неё. Пока лобби открыто и клавиатура
-     поднята, шторка встаёт над ней и ужимается до видимой части экрана —
-     её размер знает visualViewport. То же самое, что у шторок главного экрана. */
-  function keyboard(){
-    var vv = window.visualViewport, root = document.documentElement;
-    if (!vv) return;
-    function fit(){
-      var kb = Math.round(window.innerHeight - vv.height - vv.offsetTop);
-      if (kb < 80 || !document.body.classList.contains('np-open')) kb = 0;
-      root.classList.toggle('np-kb', kb > 0);
-      root.style.setProperty('--np-kb', kb + 'px');
-      root.style.setProperty('--np-vh', Math.round(vv.height) + 'px');
-      if (!kb){ if (window.scrollY) window.scrollTo(0, 0); return; }
-      var a = document.activeElement, pad = 12, r, sr;
-      if (!a || !el.sheet.contains(a)) return;
-      r = a.getBoundingClientRect(); sr = el.sheet.getBoundingClientRect();
-      if (r.bottom > sr.bottom - pad) el.sheet.scrollTop += r.bottom - (sr.bottom - pad);
-      else if (r.top < sr.top + pad) el.sheet.scrollTop -= (sr.top + pad) - r.top;
-    }
-    vv.addEventListener('resize', fit);
-    vv.addEventListener('scroll', fit);
-    document.addEventListener('focusin', function(){ setTimeout(fit, 80); setTimeout(fit, 400); });
-    document.addEventListener('focusout', function(){ setTimeout(fit, 80); setTimeout(fit, 400); });
+  /* Пока в лобби набирают имя или код, у шторки класс np-typing — она стоит
+     у верхнего края экрана, куда клавиатура не достаёт. Первая попытка (27.09)
+     поднимала шторку на высоту клавиатуры по visualViewport, но на телефоне
+     это уносило всё за край: высоту клавиатуры iPhone, Telegram и Android
+     считают по-разному. Верхний край от неё не зависит. */
+  function typing(){
+    var field = function(a){ return !!a && el.sheet.contains(a) && /^(INPUT|TEXTAREA)$/.test(a.tagName); };
+    el.sheet.addEventListener('focusin', function(e){ if (field(e.target)) el.sheet.classList.add('np-typing'); });
+    el.sheet.addEventListener('focusout', function(){
+      /* не сразу: нажатие на кнопку должно попасть туда, куда целились */
+      setTimeout(function(){ if (!field(document.activeElement)) el.sheet.classList.remove('np-typing'); }, 200);
+    });
   }
 
   function build(){
@@ -240,7 +228,7 @@ var NET = (function(){
            name:id('npName'), warn:id('npWarn'),
            panes:{ pick:id('npPick'), wait:id('npWait'), enter:id('npEnter') } };
 
-    keyboard();
+    typing();
 
     /* имя сохраняем сразу, чтобы оно подставилось и в следующий раз, и в играх */
     el.name.value = myName();
@@ -327,6 +315,7 @@ var NET = (function(){
     document.body.classList.remove('np-open');
     try{ if (el.input) el.input.blur(); }catch(e){}
     try{ if (el.name) el.name.blur(); }catch(e){}
+    if (el.sheet) el.sheet.classList.remove('np-typing');
   }
 
   function announce(t){
@@ -335,19 +324,31 @@ var NET = (function(){
   }
 
   /* ---------- связь ---------- */
+  /* У запроса есть предел ожидания. Без него запрос, повисший в сети (лифт,
+     переход с Wi-Fi на мобильную связь), висел бы минутами: следующий опрос
+     ставится только после ответа на предыдущий, и партия у игрока просто
+     замирала бы — даже без предупреждения о связи. Через 8 секунд запрос
+     считается несостоявшимся, как обрыв: опрос повторится, а ход уйдёт
+     снова — сервер повтор узнает по метке и дважды не применит. */
+  var WAIT = 8000;
   function call(action, body){
+    var ctl = typeof AbortController === 'function' ? new AbortController() : null;
+    var cut = ctl ? setTimeout(function(){ try { ctl.abort(); } catch(e){} }, WAIT) : 0;
+    var none = function(){ clearTimeout(cut); return { status: 0, body: { error: 'Нет связи с сервером' } }; };
     return fetch('/api/' + action, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(body || {})
+      body: JSON.stringify(body || {}),
+      signal: ctl ? ctl.signal : undefined
     }).then(function(r){
       return r.text().then(function(t){
+        clearTimeout(cut);
         var j = null;
         try { j = JSON.parse(t); } catch(e){}
         if (!j) j = { error: 'Сетевая игра на этом адресе не работает' };
         return { status: r.status, body: j };
-      });
-    }, function(){ return { status: 0, body: { error: 'Нет связи с сервером' } }; });
+      }, none);
+    }, none);
   }
 
   /* счёт ходов глазами игры — по нему видно, что у неё разъехалось поле */

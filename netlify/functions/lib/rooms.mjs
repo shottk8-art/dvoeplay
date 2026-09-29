@@ -22,6 +22,8 @@
    Ход — маленькое значение JSON: число (клетка), строка (слово),
    массив (размер фишки и клетка). Размер ограничен. */
 
+import { randomBytes } from 'node:crypto';
+
 const LIFETIME = 3 * 60 * 60 * 1000;   /* комната живёт 3 часа с последнего касания */
 const AWOL     = 25 * 1000;            /* столько тишины — считаем соперника отключившимся */
 const PRESENCE = 6 * 1000;             /* как часто отмечаться «я на связи» */
@@ -33,6 +35,7 @@ const TRIES = 6;                       /* столько раз пробуем �
 /* имя приходит от игрока, поэтому чистим: одна строка, без лишних пробелов */
 const clean = (v) => String(v == null ? '' : v)
   .replace(/[\u0000-\u001f\u007f]/g, '')
+  .replace(/[<>]/g, '')                 /* имя попадает в разметку у соперника */
   .replace(/\s+/g, ' ')
   .trim()
   .slice(0, MAX_NAME_CHARS);
@@ -40,7 +43,10 @@ const clean = (v) => String(v == null ? '' : v)
 const now = () => Date.now();
 const rnd = (n) => Math.floor(Math.random() * n);
 const newCode  = () => String(rnd(90000) + 10000);
-const newToken = () => Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+/* Токен — пропуск игрока в комнату: с ним ходят и выходят за него. Угадать
+   его не должен никто, поэтому он криптографически случайный: Math.random по
+   нескольким выданным значениям можно предсказать. */
+const newToken = () => randomBytes(16).toString('hex');
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 function key(code){ return 'room-' + code; }
@@ -48,16 +54,21 @@ function key(code){ return 'room-' + code; }
 /* кто начинает раунд: первый раунд за первым игроком, дальше по очереди */
 export function starterOf(round){ return round % 2 === 0 ? 1 : 2; }
 
-/* ход допустим, если он компактный и без вложенных объектов */
+/* Ход допустим, если он компактный и без вложенных объектов. Строки в ходах —
+   это слово, буква, код замка или метка ребра ('h'/'v'), то есть только буквы
+   и цифры: ход соперника показывается на экране, и разметку в нём пропускать
+   нельзя — ни свежим играм, ни старым копиям в офлайн-кеше телефонов. */
+const WORDY = /^[0-9A-Za-zА-Яа-яЁё]*$/;
+const okText = (x) => x.length <= MAX_MOVE_CHARS && WORDY.test(x);
 export function okMove(v){
   if (v === null || v === undefined) return false;
   const t = typeof v;
   if (t === 'number') return Number.isFinite(v);
-  if (t === 'string') return v.length <= MAX_MOVE_CHARS;
+  if (t === 'string') return okText(v);
   if (Array.isArray(v)){
     if (v.length > 8) return false;
     return v.every(x => (typeof x === 'number' && Number.isFinite(x)) ||
-                        (typeof x === 'string' && x.length <= MAX_MOVE_CHARS));
+                        (typeof x === 'string' && okText(x)));
   }
   return false;
 }

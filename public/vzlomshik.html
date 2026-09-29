@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1C1C1E" media="(prefers-color-scheme: dark)">
 <script>
@@ -78,6 +78,18 @@ if('serviceWorker' in navigator && location.protocol!=='file:'){
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Взломщик кода — dvoeplay</title>
+<meta name="description" content="Подберите код велозамка соперника — четыре попытки за ход. Игра для двоих: на одном телефоне, по сети или против ИИ.">
+<!-- превью ссылки в Telegram, WhatsApp и других мессенджерах: без этого приглашение
+     в сетевую игру приходит голой ссылкой. Картинка — по полному адресу, иначе не покажут -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="dvoeplay">
+<meta property="og:locale" content="ru_RU">
+<meta property="og:title" content="Взломщик кода — dvoeplay">
+<meta property="og:description" content="Подберите код велозамка соперника — четыре попытки за ход. Игра для двоих: на одном телефоне, по сети или против ИИ.">
+<meta property="og:image" content="https://dvoeplay.netlify.app/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <style>
@@ -131,6 +143,11 @@ if('serviceWorker' in navigator && location.protocol!=='file:'){
   }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;margin:0;overflow:hidden;overscroll-behavior:none}
+/* Повернули телефон боком и обратно — текст и всё, что от него зависит, стали
+   крупнее: iPhone в альбомной ориентации сам увеличивает шрифт («автоподбор
+   текста») и обратно его не возвращает. Размеры здесь подобраны под экран —
+   автоподбор выключен. */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{
   background:var(--bg); color:var(--label);
   font:400 17px/1.4 -apple-system,BlinkMacSystemFont,system-ui,"Segoe UI",sans-serif;
@@ -146,6 +163,13 @@ body{
   transition:transform .46s var(--ease),opacity .46s var(--ease);
   background:var(--bg);
   will-change:transform;
+}
+/* Планшет и компьютер: колонка шириной с телефон по центру окна, как в
+   «4 в ряд» и на главном экране, — а не список, табло и кнопки во всю ширину.
+   Низкий альбомный телефон не трогаем: там ширина нужна раскладке «руки по бокам». */
+@media (min-width:600px) and (min-height:561px){
+  .screen{padding-left:max(calc(env(safe-area-inset-left) + 16px),calc((100% - 520px)/2));
+          padding-right:max(calc(env(safe-area-inset-right) + 16px),calc((100% - 520px)/2))}
 }
 #game{transform:translateX(100%)}
 .app.playing #menu{transform:translateX(-28%);opacity:.35}
@@ -532,7 +556,9 @@ body{
 
 :focus-visible{outline:2.5px solid var(--tint);outline-offset:2px}
 @media (prefers-reduced-motion: reduce){
-  *{animation-duration:.001s!important;transition-duration:.06s!important}
+  /* число повторов обязательно: бесконечная анимация (точки ожидания, пульс
+     победной фишки), сжатая до миллисекунды, не замирает, а мерцает */
+  *,*::before,*::after{animation-duration:.001s!important;animation-iteration-count:1!important;transition-duration:.06s!important}
 }
 @media (max-height:660px){
   .wordmark{width:min(205px,72%)}
@@ -1906,9 +1932,11 @@ NET.init({
   begin:function(c){ net.seat=c.seat; net.round=c.round; startGame(3); },
   round:function(c){ net.round=c.round; closeSheet(false); newRound(); },
   move:function(v,quick){
-    if(Object.prototype.toString.call(v)==='[object Array]' && v[0]==='s'){ takeSecret(v[1]); return; }
+    /* от соперника берём только цифры: код и попытки потом идут в разметку */
+    var dig=function(x){ return String(x==null?'':x).replace(/[^0-9]/g,'').slice(0,DIGITS); };
+    if(Object.prototype.toString.call(v)==='[object Array]' && v[0]==='s'){ takeSecret(dig(v[1])); return; }
     if(phase!=='play') return;
-    doGuess(3-net.seat,String(v),true,!!quick);
+    doGuess(3-net.seat,dig(v),true,!!quick);
   },
   ended:toMenu
 });

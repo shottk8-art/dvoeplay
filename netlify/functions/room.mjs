@@ -60,6 +60,8 @@ export default async (request) => {
     const res = await handle(blobStore(), action, data);
     return json(res.status, res.body);
   } catch (e){
+    /* в логах функции на Netlify видно, что именно сломалось */
+    console.error('[room] ' + action + ':', e && (e.stack || e.message || e));
     return json(500, { error: 'Сервер комнат недоступен' });
   }
 };

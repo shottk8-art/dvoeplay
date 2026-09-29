@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1C1C1E" media="(prefers-color-scheme: dark)">
 <script>
@@ -78,6 +78,18 @@ if('serviceWorker' in navigator && location.protocol!=='file:'){
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Доббль — dvoeplay</title>
+<meta name="description" content="У двух карт всегда один общий символ — найдите его первым. Игра на скорость для двоих: на одном телефоне, по сети или против ИИ.">
+<!-- превью ссылки в Telegram, WhatsApp и других мессенджерах: без этого приглашение
+     в сетевую игру приходит голой ссылкой. Картинка — по полному адресу, иначе не покажут -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="dvoeplay">
+<meta property="og:locale" content="ru_RU">
+<meta property="og:title" content="Доббль — dvoeplay">
+<meta property="og:description" content="У двух карт всегда один общий символ — найдите его первым. Игра на скорость для двоих: на одном телефоне, по сети или против ИИ.">
+<meta property="og:image" content="https://dvoeplay.netlify.app/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <style>
@@ -141,6 +153,11 @@ if('serviceWorker' in navigator && location.protocol!=='file:'){
   }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden}
+/* Повернули телефон боком и обратно — текст и всё, что от него зависит, стали
+   крупнее: iPhone в альбомной ориентации сам увеличивает шрифт («автоподбор
+   текста») и обратно его не возвращает. Размеры здесь подобраны под экран —
+   автоподбор выключен. */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{
   margin:0;background:var(--bg);color:var(--label);
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
@@ -154,19 +171,31 @@ body{
   transition:transform .34s var(--spring),opacity .26s ease;
   will-change:transform;
 }
+/* Планшет и компьютер: колонка шириной с телефон по центру окна, как в
+   «4 в ряд» и на главном экране, — а не список, табло и кнопки во всю ширину.
+   Низкий альбомный телефон не трогаем: там ширина нужна раскладке «руки по бокам». */
+@media (min-width:600px) and (min-height:561px){
+  .screen{padding-left:max(calc(env(safe-area-inset-left) + 16px),calc((100% - 520px)/2));
+          padding-right:max(calc(env(safe-area-inset-right) + 16px),calc((100% - 520px)/2))}
+}
 #game{transform:translateX(100%)}
 #app.playing #game{transform:none}
 #app.playing #menu{transform:translateX(-22%);opacity:0;pointer-events:none}
 
 /* ---------- меню ---------- */
 #menu{overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
-.brand{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+#menu>*{flex-shrink:0}
+/* Ничто в меню не сжимается меньше своего содержимого: на низком экране
+   (iPhone SE в Safari — 375×548) меню прокручивается, а не сплющивает
+   заставку в полоску и не наезжает подписью на заголовок списка. */
+.brand{flex:1 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center}
 
 /* ---------- заставка меню: две карты, общий символ вспыхивает на обеих ---------- */
 .mini{
   position:relative;width:min(62%,216px);aspect-ratio:5/2;
   background:var(--surface);border-radius:18px;overflow:hidden;
   box-shadow:var(--card-shadow);margin-bottom:30px;
+  flex:none;
 }
 .mini .mc{
   position:absolute;top:50%;width:37%;aspect-ratio:1;transform:translate(-50%,-50%);
@@ -358,11 +387,27 @@ body{
   position:absolute;inset:0;background:rgba(0,0,0,.34);opacity:0;pointer-events:none;
   transition:opacity .28s ease;
 }
+/* Телефон боком: три карты стопкой по высоте не помещаются — своя, нижняя,
+   уходила за край, и играть было нельзя. Пока идёт партия и телефон лёг
+   боком, просим повернуть его обратно. Меню, лобби и шторки работают и боком. */
+.turn{display:none}
+@media (orientation:landscape) and (max-height:510px) and (pointer:coarse){
+  #app.playing .turn{
+    position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:8px;padding:24px;background:var(--bg);text-align:center;
+  }
+}
+.turn svg{width:48px;height:48px;margin-bottom:6px;fill:none;stroke:var(--tint);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.turn b{font-size:20px;font-weight:700;letter-spacing:-.35px}
+.turn span{font-size:14px;color:var(--label2);letter-spacing:-.1px}
 .scrim.on{opacity:1;pointer-events:auto}
+/* закрытая шторка уезжает за край вместе со своей тенью: сдвинутая только
+   на свою высоту, она оставляла тень на виду — серую полосу по низу экрана */
 .sheet{
   position:absolute;left:0;right:0;bottom:0;background:var(--surface);
+  max-width:520px;margin:0 auto;
   border-radius:22px 22px 0 0;padding:10px 20px calc(env(safe-area-inset-bottom) + 18px);
-  transform:translateY(101%);transition:transform .4s var(--spring);
+  transform:translateY(calc(100% + 60px));transition:transform .4s var(--spring);
   box-shadow:0 -12px 40px rgba(0,0,0,.16);
 }
 .sheet.on{transform:none}
@@ -399,7 +444,9 @@ body{
 .btn:active{transform:scale(.97);opacity:.9}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 @media (prefers-reduced-motion: reduce){
-  *{animation-duration:.001s!important;transition-duration:.06s!important}
+  /* число повторов обязательно: бесконечная анимация (точки ожидания, пульс
+     победной фишки), сжатая до миллисекунды, не замирает, а мерцает */
+  *,*::before,*::after{animation-duration:.001s!important;animation-iteration-count:1!important;transition-duration:.06s!important}
 }
 @media (max-height:660px){
   .wordmark{width:min(205px,72%)}
@@ -485,6 +532,11 @@ body{
     <button class="btn primary" id="again">Ещё раз</button>
     <button class="btn" id="toMenuBtn">В меню</button>
   </aside>
+  <div class="turn" aria-hidden="true">
+    <svg viewBox="0 0 48 48"><rect x="16" y="5" width="18" height="31" rx="4"/><path d="M22 31h6"/><path d="M7 27a17 17 0 0 0 15 15"/><path d="M17.5 42.6l4.6-.6-1.3-4.4"/></svg>
+    <b>Поверните телефон</b>
+    <span>«Доббль» играется на вертикальном экране</span>
+  </div>
 </div>
 
 <style>.playing-net #restart{display:none}</style>
@@ -785,6 +837,8 @@ function fit(){
 }
 var fitT=0;
 addEventListener('resize',function(){ clearTimeout(fitT); fitT=setTimeout(fit,80); });
+/* iPhone после поворота отдаёт окончательные размеры с опозданием — пересчитываем ещё раз */
+addEventListener('orientationchange',function(){ setTimeout(fit,250); });
 
 function say(t,good){ hint.textContent=t; hint.classList.toggle('good',!!good); if(t) liveEl.textContent=t; }
 function el(side){ return side===mySide() ? cBot : cTop; }
