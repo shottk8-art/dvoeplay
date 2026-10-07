@@ -1,0 +1,45 @@
+{
+  "base": "http://localhost:18787/",
+  "reduced": false,
+  "viewport": "390x844",
+  "sampleMs": 3200,
+  "results": [
+    {
+      "page": "viselica",
+      "menu": {
+        "frames": 193,
+        "p95Ms": 16.799999999999955,
+        "maxMs": 16.800000000000182,
+        "over33Ms": 0,
+        "previewMutations": 18,
+        "activeAnimations": 0,
+        "layoutAnimations": 0,
+        "metrics": {
+          "LayoutCount": 9,
+          "RecalcStyleCount": 88,
+          "LayoutDuration": 0.0015249999999999986,
+          "RecalcStyleDuration": 0.016822000000000004,
+          "ScriptDuration": 0.009277999999999998,
+          "TaskDuration": 0.095845
+        }
+      },
+      "playing": {
+        "frames": 193,
+        "p95Ms": 16.700000000000728,
+        "maxMs": 16.800000000000182,
+        "over33Ms": 0,
+        "previewMutations": 0,
+        "activeAnimations": 1,
+        "layoutAnimations": 0,
+        "metrics": {
+          "LayoutCount": 3,
+          "RecalcStyleCount": 194,
+          "LayoutDuration": 0.0005359999999999983,
+          "RecalcStyleDuration": 0.014201000000000005,
+          "ScriptDuration": 0.010908000000000001,
+          "TaskDuration": 0.11072399999999999
+        }
+      }
+    }
+  ]
+}

@@ -17,8 +17,7 @@ const json = (status, body) => new Response(JSON.stringify(body), {
    Запись условная: etag, полученный при чтении, — пропуск на запись.
    Если комнату успели изменить, Blobs вернёт modified:false, и логика
    комнат перечитает её и повторит действие. Без этого ходы теряются. */
-function blobStore(){
-  const store = getStore({ name: 'rooms', consistency: 'strong' });
+export function blobStore(store = getStore({ name: 'rooms', consistency: 'strong' })){
   return {
     async read(k){
       const r = await store.getWithMetadata(k, { type: 'json', consistency: 'strong' });
@@ -26,19 +25,13 @@ function blobStore(){
       return { value: r.data, etag: r.etag };
     },
     async write(k, v, etag){
-      const how = etag === null ? { onlyIfNew: true }
-                : etag ? { onlyIfMatch: etag }
-                : {};
-      let res;
-      try {
-        res = await store.setJSON(k, v, how);
-      } catch (e){
-        /* Условия записи не поддержаны хранилищем — пишем без них. Это хуже
-           (возвращается старая беда с потерянными ходами), но игра работает,
-           а не падает. Если это когда-нибудь случится, будет видно в логах. */
-        console.warn('условная запись не прошла, пишем как есть:', e && e.message);
-        res = await store.setJSON(k, v);
+      if (etag !== null && (typeof etag !== 'string' || !etag)){
+        throw new Error('Для обновления комнаты нужен etag');
       }
+      const how = etag === null ? { onlyIfNew: true }
+                : { onlyIfMatch: etag };
+      // При сбое клиент повторит ход. Безусловная запись могла бы стереть ход соперника.
+      const res = await store.setJSON(k, v, how);
       return !!(res && res.modified);
     },
     async del(k){ await store.delete(k); }

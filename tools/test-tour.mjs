@@ -20,7 +20,7 @@ import { BASE, wait, reporter, launch, until } from './netkit.mjs';
 
 const rep = reporter();
 const ok = rep.ok;
-const SRC = readFileSync('/home/claude/net/public/tour.js', 'utf8');
+const SRC = readFileSync(new URL('../public/tour.js', import.meta.url), 'utf8');
 
 function sandbox(){
   const store = new Map();

@@ -44,4 +44,4 @@ const server = http.createServer(async (req, res) => {
 });
 
 const PORT = process.env.PORT || 8787;
-server.listen(PORT, () => console.log('локальный сервер на http://localhost:' + PORT));
+server.listen(PORT, () => console.log('локальный сервер на http://localhost:' + server.address().port));

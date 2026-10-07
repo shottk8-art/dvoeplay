@@ -2,9 +2,12 @@
 # -*- coding: utf-8 -*-
 """Сплошная проверка приложения dvoeplay: синтаксис, ссылки на элементы,
    согласованность общих блоков и сетевой обвязки во всех играх."""
-import io, os, re, subprocess, sys, collections
+import io, os, re, subprocess, sys, collections, tempfile
+from pathlib import Path
 
-PUB = '/home/claude/net/public'
+ROOT = Path(__file__).resolve().parent.parent
+PUB = str(ROOT / 'public')
+AUDIT_TMP = tempfile.TemporaryDirectory(prefix='dvoeplay-audit-')
 GAMES = ['dvoeplay','matreshka','magnitniy-boy','memo-duel','dots-boxes',
          '5-bukv','viselica','zahlopni-yaschik','dobble','vzlomshik']
 ALL = GAMES + ['index']
@@ -24,7 +27,7 @@ def scripts(s):
 
 # ───────────────── 1. синтаксис ─────────────────
 def check_js(code, where):
-    p = '/tmp/claude-0/audit-chk.js'
+    p = os.path.join(AUDIT_TMP.name, 'audit-chk.js')
     io.open(p, 'w', encoding='utf-8').write(code)
     r = subprocess.run(['node','--check',p], capture_output=True, text=True)
     if r.returncode != 0:
@@ -34,6 +37,8 @@ for n in ALL:
     for i, code in enumerate(scripts(src[n])):
         check_js(code, n + '.html (скрипт ' + str(i+1) + ')')
 check_js(netjs, 'net.js')
+check_js((ROOT / 'public/motion.js').read_text(), 'motion.js')
+check_js((ROOT / 'public/sw.js').read_text(), 'sw.js')
 
 # ───────────────── 2. парность тегов ─────────────────
 for n in ALL:
@@ -135,7 +140,7 @@ for n in ALL:
 sw = io.open(os.path.join(PUB, 'sw.js'), encoding='utf-8').read()
 listed = set(re.findall(r"^  '([^']+)',?$", sw, re.M)) - {'./'}
 real = set(f for f in os.listdir(PUB)
-           if f.endswith('.html') or f in ('net.js', 'tour.js', 'manifest.webmanifest')
+           if f.endswith('.html') or f in ('net.js', 'tour.js', 'motion.js', 'motion.css', 'manifest.webmanifest')
            or f.endswith('.svg'))
 for f in sorted(real - listed): bad('sw.js', 'файл ' + f + ' не попадёт в кеш — без сети не откроется')
 for f in sorted(listed - real):
@@ -313,7 +318,7 @@ for k in ['on','live','seat','round','seed','rng','turn']:
 if 'console.warn' in netjs: note('net.js', 'осталась диагностика пересборки в консоль (безвредно, помогает разбирать сбои)')
 
 # ───────────────── 11. сервер ─────────────────
-rooms = io.open('/home/claude/net/netlify/functions/lib/rooms.mjs', encoding='utf-8').read()
+rooms = io.open(ROOT / 'netlify/functions/lib/rooms.mjs', encoding='utf-8').read()
 for k in ['starterOf','okMove','handle']:
     if 'export function ' + k not in rooms and 'export async function ' + k not in rooms:
         bad('rooms.mjs', 'не экспортируется ' + k)
@@ -402,7 +407,7 @@ for n in ALL:
         bad(n + '.html', 'viewport не общий для серии (нужен maximum-scale=1) — iPhone может оставить страницу увеличенной после поворота')
 
 # ───────────────── итог ─────────────────
-print('проверено файлов:', len(ALL) + 2)
+print('проверено файлов:', len(ALL) + 4)
 if problems:
     print('\nНАЙДЕНО ПРОБЛЕМ:', len(problems))
     for w, t in problems: print('  ✗ %-22s %s' % (w, t))

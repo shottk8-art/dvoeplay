@@ -5,5 +5,14 @@
   "description": "dvoeplay — игры для двоих",
   "dependencies": {
     "@netlify/blobs": "^11.1.0"
+  },
+  "scripts": {
+    "dev": "node tools/dev-server.mjs",
+    "audit": "python3 tools/audit.py",
+    "test": "node tools/test-rooms.mjs && node tools/test-race.mjs && node tools/test-round-boundaries.mjs && node tools/test-blob-store.mjs && node tools/test-game-properties.mjs",
+    "test:browser": "node tools/run-all.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
   }
 }

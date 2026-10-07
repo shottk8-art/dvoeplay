@@ -1,0 +1,398 @@
+{
+  "base": "http://localhost:18787/",
+  "reduced": false,
+  "viewport": "390x844",
+  "sampleMs": 3200,
+  "results": [
+    {
+      "page": "index",
+      "menu": {
+        "frames": 193,
+        "p95Ms": 16.700000000000273,
+        "maxMs": 16.800000000000182,
+        "over33Ms": 0,
+        "previewMutations": 0,
+        "activeAnimations": 8,
+        "layoutAnimations": 0,
+        "metrics": {
+          "LayoutCount": 3,
+          "RecalcStyleCount": 194,
+          "LayoutDuration": 0.00037100000000000327,
+          "RecalcStyleDuration": 0.021741000000000003,
+          "ScriptDuration": 0.010063,
+          "TaskDuration": 0.09377400000000001
+        }
+      }
+    },
+    {
+      "page": "dvoeplay",
+      "menu": {
+        "frames": 193,
+        "p95Ms": 16.700000000000273,
+        "maxMs": 16.800000000000182,
+        "over33Ms": 0,
+        "previewMutations": 0,
+        "activeAnimations": 0,
+        "layoutAnimations": 0,
+        "metrics": {
+          "LayoutCount": 0,
+          "RecalcStyleCount": 25,
+          "LayoutDuration": 0,
+          "RecalcStyleDuration": 0.0014460000000000002,
+          "ScriptDuration": 0.00378,
+          "TaskDuration": 0.034894
+        }
+      },
+      "playing": {
+        "frames": 193,
+        "p95Ms": 16.700000000000728,
+        "maxMs": 16.800000000000182,
+        "over33Ms": 0,
+        "previewMutations": 0,
+        "activeAnimations": 0,
+        "layoutAnimations": 0,
+        "metrics": {
+          "LayoutCount": 0,
+          "RecalcStyleCount": 0,
+          "LayoutDuration": 0,
+          "RecalcStyleDuration": 0,
+          "ScriptDuration": 0.003832000000000002,
+          "TaskDuration": 0.027595999999999954
+        }
+      }
+    },
+    {
+      "page": "matreshka",
+      "menu": {
+        "frames": 193,
+        "p95Ms": 16.799999999999727,
+        "maxMs": 16.800000000000182,
+        "over33Ms": 0,
+        "previewMutations": 18,
+        "activeAnimations": 0,
+        "layoutAnimations": 0,
+        "metrics": {
+          "LayoutCount": 4,
+          "RecalcStyleCount": 173,
+          "LayoutDuration": 0.0005669999999999998,
+          "RecalcStyleDuration": 0.013138999999999998,
+          "ScriptDuration": 0.004649,
+          "TaskDuration": 0.061495
+        }
+      },
+      "playing": {
+        "frames": 193,
+        "p95Ms": 16.700000000000728,
+        "maxMs": 16.800000000000182,
+        "over33Ms": 0,
+        "previewMutations": 0,
+        "activeAnimations": 0,
+        "layoutAnimations": 0,
+        "metrics": {
+          "LayoutCount": 0,
+          "RecalcStyleCount": 0,
+          "LayoutDuration": 0,
+          "RecalcStyleDuration": 0,
+          "ScriptDuration": 0.004126999999999999,
+          "TaskDuration": 0.031295
+        }
+      }
+    },
+    {
+      "page": "magnitniy-boy",
+      "menu": {
+        "frames": 193,
+        "p95Ms": 16.700000000000273,
+        "maxMs": 16.800000000000182,
+        "over33Ms": 0,
+        "previewMutations": 9,
+        "activeAnimations": 2,
+        "layoutAnimations": 0,
+        "metrics": {
+          "LayoutCount": 3,
+          "RecalcStyleCount": 124,
+          "LayoutDuration": 0.0004990000000000003,
+          "RecalcStyleDuration": 0.009902999999999999,
+          "ScriptDuration": 0.004718999999999999,
+          "TaskDuration": 0.058009000000000005
+        }
+      },
+      "playing": {
+        "frames": 193,
+        "p95Ms": 16.700000000000728,
+        "maxMs": 16.800000000000182,
+        "over33Ms": 0,
+        "previewMutations": 0,
+        "activeAnimations": 0,
+        "layoutAnimations": 0,
+        "metrics": {
+          "LayoutCount": 0,
+          "RecalcStyleCount": 0,
+          "LayoutDuration": 0,
+          "RecalcStyleDuration": 0,
+          "ScriptDuration": 0.0038519999999999995,
+          "TaskDuration": 0.030689999999999995
+        }
+      }
+    },
+    {
+      "page": "memo-duel",
+      "menu": {
+        "frames": 193,
+        "p95Ms": 16.799999999999955,
+        "maxMs": 16.800000000000182,
+        "over33Ms": 0,
+        "previewMutations": 4,
+        "activeAnimations": 0,
+        "layoutAnimations": 0,
+        "metrics": {
+          "LayoutCount": 0,
+          "RecalcStyleCount": 80,
+          "LayoutDuration": 0,
+          "RecalcStyleDuration": 0.007408,
+          "ScriptDuration": 0.004598,
+          "TaskDuration": 0.055831
+        }
+      },
+      "playing": {
+        "frames": 193,
+        "p95Ms": 16.799999999999272,
+        "maxMs": 16.800000000000182,
+        "over33Ms": 0,
+        "previewMutations": 0,
+        "activeAnimations": 0,
+        "layoutAnimations": 0,
+        "metrics": {
+          "LayoutCount": 0,
+          "RecalcStyleCount": 0,
+          "LayoutDuration": 0,
+          "RecalcStyleDuration": 0,
+          "ScriptDuration": 0.003668000000000001,
+          "TaskDuration": 0.03631400000000001
+        }
+      }
+    },
+    {
+      "page": "dots-boxes",
+      "menu": {
+        "frames": 193,
+        "p95Ms": 16.799999999999727,
+        "maxMs": 16.800000000000182,
+        "over33Ms": 0,
+        "previewMutations": 32,
+        "activeAnimations": 0,
+        "layoutAnimations": 0,
+        "metrics": {
+          "LayoutCount": 1,
+          "RecalcStyleCount": 138,
+          "LayoutDuration": 0.00007299999999999993,
+          "RecalcStyleDuration": 0.009548000000000001,
+          "ScriptDuration": 0.004438,
+          "TaskDuration": 0.067327
+        }
+      },
+      "playing": {
+        "frames": 193,
+        "p95Ms": 16.700000000000728,
+        "maxMs": 16.800000000000182,
+        "over33Ms": 0,
+        "previewMutations": 0,
+        "activeAnimations": 0,
+        "layoutAnimations": 0,
+        "metrics": {
+          "LayoutCount": 0,
+          "RecalcStyleCount": 0,
+          "LayoutDuration": 0,
+          "RecalcStyleDuration": 0,
+          "ScriptDuration": 0.003803000000000001,
+          "TaskDuration": 0.030358999999999983
+        }
+      }
+    },
+    {
+      "page": "5-bukv",
+      "menu": {
+        "frames": 193,
+        "p95Ms": 16.799999999999727,
+        "maxMs": 16.800000000000182,
+        "over33Ms": 0,
+        "previewMutations": 24,
+        "activeAnimations": 20,
+        "layoutAnimations": 0,
+        "metrics": {
+          "LayoutCount": 3,
+          "RecalcStyleCount": 123,
+          "LayoutDuration": 0.0005239999999999997,
+          "RecalcStyleDuration": 0.01149,
+          "ScriptDuration": 0.006085,
+          "TaskDuration": 0.071758
+        }
+      },
+      "playing": {
+        "frames": 193,
+        "p95Ms": 16.700000000000728,
+        "maxMs": 16.800000000000182,
+        "over33Ms": 0,
+        "previewMutations": 0,
+        "activeAnimations": 0,
+        "layoutAnimations": 0,
+        "metrics": {
+          "LayoutCount": 3,
+          "RecalcStyleCount": 21,
+          "LayoutDuration": 0.0012980000000000005,
+          "RecalcStyleDuration": 0.001695000000000002,
+          "ScriptDuration": 0.004881,
+          "TaskDuration": 0.037481000000000014
+        }
+      }
+    },
+    {
+      "page": "viselica",
+      "menu": {
+        "frames": 193,
+        "p95Ms": 16.700000000000273,
+        "maxMs": 16.800000000000182,
+        "over33Ms": 0,
+        "previewMutations": 18,
+        "activeAnimations": 0,
+        "layoutAnimations": 0,
+        "metrics": {
+          "LayoutCount": 9,
+          "RecalcStyleCount": 88,
+          "LayoutDuration": 0.001246,
+          "RecalcStyleDuration": 0.01287,
+          "ScriptDuration": 0.003821,
+          "TaskDuration": 0.060237
+        }
+      },
+      "playing": {
+        "frames": 193,
+        "p95Ms": 16.700000000000728,
+        "maxMs": 16.800000000000182,
+        "over33Ms": 0,
+        "previewMutations": 0,
+        "activeAnimations": 0,
+        "layoutAnimations": 0,
+        "metrics": {
+          "LayoutCount": 47,
+          "RecalcStyleCount": 56,
+          "LayoutDuration": 0.009319000000000001,
+          "RecalcStyleDuration": 0.00681,
+          "ScriptDuration": 0.0078119999999999995,
+          "TaskDuration": 0.07195400000000002
+        }
+      }
+    },
+    {
+      "page": "zahlopni-yaschik",
+      "menu": {
+        "frames": 193,
+        "p95Ms": 16.799999999999727,
+        "maxMs": 16.800000000000182,
+        "over33Ms": 0,
+        "previewMutations": 14,
+        "activeAnimations": 0,
+        "layoutAnimations": 0,
+        "metrics": {
+          "LayoutCount": 4,
+          "RecalcStyleCount": 178,
+          "LayoutDuration": 0.0005260000000000004,
+          "RecalcStyleDuration": 0.015455,
+          "ScriptDuration": 0.0039310000000000005,
+          "TaskDuration": 0.07142599999999999
+        }
+      },
+      "playing": {
+        "frames": 193,
+        "p95Ms": 16.700000000000728,
+        "maxMs": 16.800000000000182,
+        "over33Ms": 0,
+        "previewMutations": 0,
+        "activeAnimations": 0,
+        "layoutAnimations": 0,
+        "metrics": {
+          "LayoutCount": 0,
+          "RecalcStyleCount": 0,
+          "LayoutDuration": 0,
+          "RecalcStyleDuration": 0,
+          "ScriptDuration": 0.0041930000000000005,
+          "TaskDuration": 0.032123999999999986
+        }
+      }
+    },
+    {
+      "page": "dobble",
+      "menu": {
+        "frames": 193,
+        "p95Ms": 16.700000000000273,
+        "maxMs": 16.800000000000182,
+        "over33Ms": 0,
+        "previewMutations": 14,
+        "activeAnimations": 0,
+        "layoutAnimations": 0,
+        "metrics": {
+          "LayoutCount": 35,
+          "RecalcStyleCount": 82,
+          "LayoutDuration": 0.0013889999999999998,
+          "RecalcStyleDuration": 0.005696,
+          "ScriptDuration": 0.006603,
+          "TaskDuration": 0.055785999999999995
+        }
+      },
+      "playing": {
+        "frames": 193,
+        "p95Ms": 16.700000000000728,
+        "maxMs": 16.800000000000182,
+        "over33Ms": 0,
+        "previewMutations": 0,
+        "activeAnimations": 0,
+        "layoutAnimations": 0,
+        "metrics": {
+          "LayoutCount": 13,
+          "RecalcStyleCount": 135,
+          "LayoutDuration": 0.003278999999999999,
+          "RecalcStyleDuration": 0.015096,
+          "ScriptDuration": 0.0064129999999999986,
+          "TaskDuration": 0.095788
+        }
+      }
+    },
+    {
+      "page": "vzlomshik",
+      "menu": {
+        "frames": 193,
+        "p95Ms": 16.700000000000273,
+        "maxMs": 16.800000000000182,
+        "over33Ms": 0,
+        "previewMutations": 244,
+        "activeAnimations": 0,
+        "layoutAnimations": 0,
+        "metrics": {
+          "LayoutCount": 0,
+          "RecalcStyleCount": 113,
+          "LayoutDuration": 0,
+          "RecalcStyleDuration": 0.007364000000000001,
+          "ScriptDuration": 0.009235,
+          "TaskDuration": 0.095085
+        }
+      },
+      "playing": {
+        "frames": 193,
+        "p95Ms": 16.799999999999272,
+        "maxMs": 16.800000000000182,
+        "over33Ms": 0,
+        "previewMutations": 0,
+        "activeAnimations": 0,
+        "layoutAnimations": 0,
+        "metrics": {
+          "LayoutCount": 0,
+          "RecalcStyleCount": 9,
+          "LayoutDuration": 0,
+          "RecalcStyleDuration": 0.00033000000000000043,
+          "ScriptDuration": 0.0035829999999999994,
+          "TaskDuration": 0.037156999999999996
+        }
+      }
+    }
+  ]
+}

@@ -581,7 +581,13 @@ body{
   .side .cap{display:none}
   .hint{margin-top:4px;font-size:12px}
 }
+
+/* Закрытые диалоги не должны оставаться в навигации клавиатуры и скринридера. */
+.sheet{visibility:hidden}
+.sheet.on{visibility:visible}
 </style>
+<link rel="stylesheet" href="motion.css">
+<script src="motion.js" defer></script>
 </head>
 <body>
 
@@ -902,6 +908,7 @@ function makeLock(host,opts){
       if(!o.forward && d>5) d-=10;
       if(o.extra) d+=(d>=0?1:-1)*10*o.extra;
       var go=function(){
+        if(!opts.interactive && window.DPMotion && !DPMotion.canPreview()) return;
         L.roll(j,cur+d,Math.abs(d)? Math.min(o.max||900,240+Math.abs(d)*(o.per||70)):0,
           Math.abs(d)>3?cubicOut:backOut,
           o.silent?null:function(){ detent(!!o.own); },
@@ -1881,7 +1888,14 @@ window.addEventListener('orientationchange',function(){ setTimeout(fit,250); });
 var miniLock=document.getElementById('miniLock');
 var M=makeLock(miniLock,{});
 var miniT=[];
+function stillMini(){
+  M.spinTo('2604',{quick:true,silent:true}); miniLock.classList.remove('open');
+}
 function playMini(){
+  if(window.DPMotion){
+    if(!DPMotion.canPreview()) return;
+    DPMotion.cancelPreview();
+  }
   miniT.forEach(clearTimeout); miniT=[];
   function at(ms,fn){ miniT.push(setTimeout(fn,ms)); }
   miniLock.classList.remove('open');
@@ -1943,6 +1957,7 @@ NET.init({
 document.addEventListener('gesturestart',function(e){ e.preventDefault(); });
 fit();
 setTimeout(fit,60);
+window.DPPreview={play:playMini,still:stillMini,stop:function(){ miniT.forEach(clearTimeout); miniT=[]; for(var i=0;i<M.raf.length;i++) M.stop(i); }};
 playMini();
 })();
 </script>

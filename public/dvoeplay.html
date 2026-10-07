@@ -373,7 +373,13 @@ body.playing #game{transform:translateX(0);pointer-events:auto}
   .side .score{font-size:19px}
   .row{padding:11px 16px}
 }
+
+/* Закрытые диалоги не должны оставаться в навигации клавиатуры и скринридера. */
+.sheet{visibility:hidden}
+.open .sheet{visibility:visible}
 </style>
+<link rel="stylesheet" href="motion.css">
+<script src="motion.js" defer></script>
 </head>
 <body>
 

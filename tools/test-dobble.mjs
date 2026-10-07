@@ -6,7 +6,7 @@
    одному на одном экране и другому на втором. */
 import { BASE, wait, reporter, launch, tab, lobby, until } from './netkit.mjs';
 
-const URL = BASE + 'dobble.html';
+const GAME_URL = BASE + 'dobble.html';
 const rep = reporter();
 const ok = rep.ok;
 
@@ -65,8 +65,8 @@ const A = await tab(browser, rep, 'A');
 const B = await tab(browser, rep, 'B');
 
 rep.head('комната');
-await A.goto(URL);
-await B.goto(URL);
+await A.goto(GAME_URL);
+await B.goto(GAME_URL);
 await lobby.openFrom(A, '.row[data-mode="3"]');
 const code = await lobby.create(A);
 ok('код получен: ' + code, /^\d{5}$/.test(code));
@@ -181,8 +181,8 @@ rep.head('вдвоём на одном телефоне (getScreenCTM как в 
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
   const D = await ctx.newPage();
   D.on('pageerror', (e) => { rep.failed++; console.log('  ОШИБКА В СТРАНИЦЕ:', e.message); });
-  await D.addInitScript({ path: '/home/claude/net/tools/webkit-like.js' });
-  await D.goto(URL);
+  await D.addInitScript({ path: new URL('./webkit-like.js', import.meta.url).pathname });
+  await D.goto(GAME_URL);
   await D.locator('.row[data-mode="2"]').click();
   const duo = (page) => page.evaluate(() => ({
     ready: !document.getElementById('cMid').classList.contains('back'),
@@ -249,7 +249,7 @@ rep.head('анимации: взятка, полёт, отмена');
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
   const D = await ctx.newPage();
   D.on('pageerror', (e) => { rep.failed++; console.log('  ОШИБКА В СТРАНИЦЕ:', e.message); });
-  await D.goto(URL);
+  await D.goto(GAME_URL);
   await D.locator('.row[data-mode="2"]').click();
   const st = () => D.evaluate(() => {
     const set = (q) => [].map.call(document.querySelectorAll(q + ' .sy'), (g) => +g.dataset.s).sort((a, b) => a - b).join(',');
@@ -310,7 +310,7 @@ rep.head('анимации: взятка, полёт, отмена');
   const cx2 = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, reducedMotion: 'reduce' });
   const R = await cx2.newPage();
   R.on('pageerror', (e) => { rep.failed++; console.log('  ОШИБКА В СТРАНИЦЕ:', e.message); });
-  await R.goto(URL);
+  await R.goto(GAME_URL);
   await R.locator('.row[data-mode="2"]').click();
   await until(R, () => R.evaluate(() => !document.getElementById('cMid').classList.contains('back')), (x) => x, 6000);
   for (let i = 0; i < 2; i++){

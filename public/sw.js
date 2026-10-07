@@ -22,9 +22,10 @@
    новая игра). Для обычной правки игры ничего менять не нужно: файл
    обновится в кеше сам. v4 — 26.09.2026, девятая игра «Доббль»;
    v5 — 26.09.2026, десятая игра «Взломщик кода»;
-   v6 — 27.09.2026, модуль мини-турнира tour.js. */
+   v6 — 27.09.2026, модуль мини-турнира tour.js;
+   v7 — 07.10.2026, общий слой движения motion.css / motion.js. */
 
-const VERSION = 'dvoeplay-v6';
+const VERSION = 'dvoeplay-v7';
 
 /* всё, без чего приложение не откроется без сети; список сверяет audit.py */
 const FILES = [
@@ -32,6 +33,8 @@ const FILES = [
   'index.html',
   'net.js',
   'tour.js',
+  'motion.css',
+  'motion.js',
   'manifest.webmanifest',
   'favicon.svg',
   'dvoeplay.html',

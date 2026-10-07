@@ -120,7 +120,8 @@ var NET = (function(){
       'box-shadow:0 -8px 40px rgba(0,0,0,.18);transform:translateY(calc(100% + 60px));',   /* с тенью за край, иначе она полосой лежит по низу экрана */
       'transition:transform .5s var(--spring,cubic-bezier(.32,.72,0,1));',
       'font:400 17px/1.3 -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif}',
-    '.np-open .np-sheet{transform:none}',
+    '.np-sheet{visibility:hidden}',
+    '.np-open .np-sheet{transform:none;visibility:visible}',
     /* пока в лобби набирают имя или код, шторка стоит у верхнего края экрана:
        клавиатура телефона ложится поверх низа, а верх она не достаёт */
     '.np-open .np-sheet.np-typing{top:calc(env(safe-area-inset-top) + 8px);bottom:auto;left:8px;right:8px;',
@@ -651,7 +652,7 @@ var NET = (function(){
     over = true;
     if (!api_.on) return;
     gen++;                                   /* прежние ответы уже неактуальны */
-    call('result', { code:api_.code, token:api_.token, winner: winner | 0 });
+    call('result', { code:api_.code, token:api_.token, winner: winner | 0, round:api_.round });
     poll(700);
   }
 
@@ -671,7 +672,7 @@ var NET = (function(){
       b.disabled = true; b.textContent = 'Ждём соперника…';
     }
     var g = ++gen;
-    call('again', { code:api_.code, token:api_.token }).then(function(res){
+    call('again', { code:api_.code, token:api_.token, round:api_.round }).then(function(res){
       if (g !== gen || !api_.on) return;
       if (res.status !== 200){ resetAgain(); return; }
       apply(res);

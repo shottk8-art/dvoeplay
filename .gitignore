@@ -1,0 +1,8 @@
+node_modules
+.netlify
+
+# Локальные оригиналы выгрузок и инвентаризация не входят в публикацию.
+docs/claude/
+docs/exports-inventory.json
+docs/RESTORATION.md
+docs/testing/

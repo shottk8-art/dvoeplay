@@ -1,0 +1,13 @@
+{
+  "metrics": {
+    "LayoutCount": 21,
+    "RecalcStyleCount": 73,
+    "LayoutDuration": 0.0019109999999999995,
+    "RecalcStyleDuration": 0.010322000000000001,
+    "TaskDuration": 0.03870699999999999
+  },
+  "state": {
+    "balls": 0,
+    "hint": "Ход красных"
+  }
+}

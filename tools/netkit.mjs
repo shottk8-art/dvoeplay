@@ -1,9 +1,9 @@
 /* Общая оснастка для сетевых тестов: два окна браузера, живой сервер.
    Пользуются ею тесты всех игр серии. */
-import pw from '/home/claude/.npm-global/lib/node_modules/playwright/index.js';
+import pw from 'playwright';
 const { chromium } = pw;
 
-export const BASE = 'http://localhost:8787/';
+export const BASE = process.env.TEST_BASE_URL || 'http://localhost:8787/';
 export const wait = (ms) => new Promise(r => setTimeout(r, ms));
 
 export function reporter(){
@@ -26,7 +26,7 @@ export async function launch(){
      игра там отстаёт. У живых игроков по телефону на каждого, так что это
      артефакт стенда — отключаем, иначе тесты врут. */
   return await chromium.launch({
-    executablePath: '/opt/pw-browsers/chromium',
+    ...(process.env.PLAYWRIGHT_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH } : {}),
     args: ['--disable-background-timer-throttling',
            '--disable-backgrounding-occluded-windows',
            '--disable-renderer-backgrounding']

@@ -1,0 +1,39 @@
+/* Движение сборника: анимируем видимый интерфейс, сохраняем доступность шторок. */
+html.motion-ready .sheet,
+html.motion-ready .np-sheet {
+  transition: transform .38s cubic-bezier(.22,1,.36,1), visibility 0s linear .38s;
+  visibility: hidden;
+  pointer-events: none;
+}
+html.motion-ready .sheet.on,
+html.motion-ready .open .sheet,
+html.motion-ready .np-open .np-sheet {
+  visibility: visible;
+  pointer-events: auto;
+  transition-delay: 0s;
+}
+/* Ввод над клавиатурой не должен ждать выезда снизу. */
+html.motion-ready .sheet.typing,
+html.motion-ready .np-sheet.np-typing { transition-duration: .16s, 0s; }
+.motion-paused .hero-art *,
+.motion-paused .hero-generic *,
+.motion-paused .art *,
+.mini.motion-paused *,
+.motion-sleep .hero-art *,
+.motion-sleep .hero-generic *,
+.motion-sleep .art *,
+.motion-sleep .mini *,
+.motion-modal .hero-art *,
+.motion-modal .hero-generic *,
+.motion-modal .art *,
+.motion-modal .mini * { animation-play-state: paused !important; }
+/* После появления плитки её transform снова принадлежит нажатию. */
+.t { animation-fill-mode: backwards; }
+@media (prefers-reduced-motion: reduce) {
+  html.motion-ready .sheet,
+  html.motion-ready .np-sheet { transition-duration: .06s, 0s; transition-delay: 0s, .06s; }
+  html.motion-ready .sheet.on,
+  html.motion-ready .open .sheet,
+  html.motion-ready .np-open .np-sheet { transition-delay: 0s; }
+  .mini *, .hero-art *, .hero-generic *, .art * { animation: none !important; }
+}

@@ -279,12 +279,20 @@ async function once(store, action, data){
   }
 
   if (action === 'result'){
+    // Старые клиенты не отправляли round: их запрос относится только к первому раунду.
+    const round = data.round === undefined ? 0 : data.round;
+    if (!Number.isInteger(round) || round !== room.round) return bad(409, 'Раунд уже сменился');
+    if (!Number.isInteger(data.winner) || data.winner < 0 || data.winner > 2){
+      return bad(400, 'Недопустимый победитель');
+    }
     if (!room.result) room.result = { winner: data.winner | 0, at };
     if (!(await save())) return AGAIN;
     return ok(view(room, seat, data.since, at));
   }
 
   if (action === 'again'){
+    const round = data.round === undefined ? 0 : data.round;
+    if (!Number.isInteger(round) || round !== room.round) return bad(409, 'Раунд уже сменился');
     room.rematch[seat - 1] = true;
     if (room.rematch[0] && room.rematch[1]){
       room.round += 1;

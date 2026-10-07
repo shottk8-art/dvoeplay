@@ -14,7 +14,7 @@ import { BASE, wait, reporter, launch } from './netkit.mjs';
 process.env.TZ = 'Europe/Moscow';
 const rep = reporter();
 const ok = rep.ok;
-const PUB = '/home/claude/net/public/';
+const PUB = new URL('../public/', import.meta.url).pathname;
 const FILES = ['index','dvoeplay','matreshka','magnitniy-boy','memo-duel','dots-boxes','5-bukv',
                'viselica','zahlopni-yaschik','dobble','vzlomshik'];
 

@@ -120,9 +120,18 @@ rep.head('каждая страница знает, что она приложе
    действует на запросы самого сервис-воркера, и он честно сходил бы на
    сервер. Поэтому поднимаем отдельный сервер и по-настоящему гасим его. */
 rep.head('без сети');
-const OFF = 'http://localhost:8788/';
-const srv = spawn('node', ['tools/dev-server.mjs'], { cwd: '/home/claude/net', env: { ...process.env, PORT: '8788' },
-                                                     stdio: 'ignore' });
+const srv = spawn(process.execPath, ['tools/dev-server.mjs'], { cwd: new URL('../', import.meta.url), env: { ...process.env, PORT: '0' },
+                                                     stdio: ['ignore','pipe','pipe'] });
+// Use a port allocated by the OS so the offline test cannot touch another local project.
+const OFF = await new Promise((resolve, reject) => {
+  const timeout = setTimeout(() => { srv.kill(); reject(new Error('Offline test server did not start')); }, 10000);
+  srv.once('error', error => { clearTimeout(timeout); reject(error); });
+  srv.once('exit', code => { clearTimeout(timeout); reject(new Error('Offline test server exited: ' + code)); });
+  srv.stdout.on('data', chunk => {
+    const match = String(chunk).match(/http:\/\/localhost:(\d+)/);
+    if (match) { clearTimeout(timeout); resolve('http://localhost:' + match[1] + '/'); }
+  });
+});
 for (let i = 0; i < 40; i++){
   try { if ((await fetch(OFF + 'index.html')).ok) break; } catch(e){}
   await wait(150);

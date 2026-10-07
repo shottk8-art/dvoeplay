@@ -331,7 +331,7 @@ body{
 .trk{fill:none;stroke:var(--fill);stroke-width:7}
 .prg{
   fill:none;stroke:var(--tint);stroke-width:7;stroke-linecap:round;
-  stroke-dasharray:226.2;stroke-dashoffset:0;transition:stroke .25s ease;
+  stroke-dasharray:226.2;stroke-dashoffset:0;transition:stroke-dashoffset .08s linear,stroke .25s ease;
 }
 .timer.warn .prg{stroke:var(--red-b)}
 .num{
@@ -510,7 +510,13 @@ body{
   .timer{width:88px;height:88px}
   .num{font-size:30px}
 }
+
+/* Закрытые диалоги не должны оставаться в навигации клавиатуры и скринридера. */
+.sheet{visibility:hidden}
+.sheet.on{visibility:visible}
 </style>
+<link rel="stylesheet" href="motion.css">
+<script src="motion.js" defer></script>
 </head>
 <body>
 
@@ -1057,7 +1063,7 @@ function markTip(k){
 /* ===================== ТАЙМЕР ЗАГАДЫВАНИЯ ===================== */
 function paintTimer(){
   var n=Math.max(0,Math.ceil(timeLeft-0.001));
-  numEl.textContent=n;
+  if(numEl.textContent!==String(n)) numEl.textContent=n;
   prgEl.style.strokeDashoffset=RING*(1-Math.max(0,timeLeft)/SET_TIME);
   timerEl.classList.toggle('warn',timeLeft<=WARN_AT+0.001);
   if(n!==lastTick){
@@ -1807,7 +1813,14 @@ function newRound(keepRoles){
 var MINI_WORD='друг';
 var MINI_ORDER=[2,0,3,1];
 var miniTimers=[];
+function stillMini(){
+  mgridEl.querySelectorAll('.mtile').forEach(function(el,i){ el.textContent=MINI_WORD[i].toUpperCase(); el.className='mtile on'; });
+}
 function playMini(){
+  if(window.DPMotion){
+    if(!DPMotion.canPreview()) return;
+    DPMotion.cancelPreview();
+  }
   miniTimers.forEach(clearTimeout); miniTimers=[];
   var mt=mgridEl.querySelectorAll('.mtile'), i;
   for(i=0;i<mt.length;i++){ mt[i].className='mtile'; mt[i].textContent=''; }
@@ -1895,6 +1908,7 @@ window.addEventListener('resize',fitDebounced);
 window.addEventListener('orientationchange',function(){ setTimeout(fit,250); });
 if(window.ResizeObserver) new ResizeObserver(fitDebounced).observe(arenaEl);
 
+window.DPPreview={play:playMini,still:stillMini,stop:function(){ miniTimers.forEach(clearTimeout); miniTimers=[]; }};
 playMini();
 })();
 </script>

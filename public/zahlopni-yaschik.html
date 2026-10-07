@@ -560,7 +560,13 @@ body{
   .dock{margin-top:8px}
   .hint{margin-top:6px}
 }
+
+/* Закрытые диалоги не должны оставаться в навигации клавиатуры и скринридера. */
+.sheet{visibility:hidden}
+.sheet.on{visibility:visible}
 </style>
+<link rel="stylesheet" href="motion.css">
+<script src="motion.js" defer></script>
 </head>
 <body>
 
@@ -1711,7 +1717,14 @@ var miniTimers=[], mtiles=[];
     mtiles.push(d);
   }
 })();
+function stillMini(){
+  mtiles.forEach(function(el,i){ el.className='mtile'+(i===11||i===6||i===2?' down r':i===8?' down y':''); el.style.opacity=''; }); mdieEl.classList.remove('hop');
+}
 function playMini(){
+  if(window.DPMotion){
+    if(!DPMotion.canPreview()) return;
+    DPMotion.cancelPreview();
+  }
   miniTimers.forEach(clearTimeout); miniTimers=[];
   mtiles.forEach(function(el){ el.className='mtile'; el.style.opacity=''; });
   var steps=[[[11],'r'],[[8],'y'],[[6,2],'r'],[[9,0],'y'],[[4],'r']];
@@ -1804,6 +1817,7 @@ buildTiles();
 fit();
 resetDice();
 paint();
+window.DPPreview={play:playMini,still:stillMini,stop:function(){ miniTimers.forEach(clearTimeout); miniTimers=[]; }};
 playMini();
 })();
 </script>

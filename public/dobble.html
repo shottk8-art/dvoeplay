@@ -455,7 +455,13 @@ body{
   .legal{margin-top:7px}
   .row{padding:11px 16px}
 }
+
+/* Закрытые диалоги не должны оставаться в навигации клавиатуры и скринридера. */
+.sheet{visibility:hidden}
+.sheet.on{visibility:visible}
 </style>
+<link rel="stylesheet" href="motion.css">
+<script src="motion.js" defer></script>
 </head>
 <body>
 <div id="app">
@@ -1501,7 +1507,14 @@ function closeSheet(){ scrim.classList.remove('on'); sheet.classList.remove('on'
 /* Две случайные карты колоды, и их единственный общий символ вспыхивает
    на обеих — это и есть вся игра за три секунды. */
 var miniL=$('miniL'), miniR=$('miniR'), miniT=[];
+function stillMini(){
+  miniL.classList.remove('swap'); miniR.classList.remove('swap');
+}
 function playMini(){
+  if(window.DPMotion){
+    if(!DPMotion.canPreview()) return;
+    DPMotion.cancelPreview();
+  }
   stopMini();
   var a=(Math.random()*DECK.length)|0, b;
   do{ b=(Math.random()*DECK.length)|0; } while(b===a);
@@ -1573,6 +1586,7 @@ $('toMenuTop').addEventListener('click',goMenu);
 scrim.addEventListener('click',closeSheet);
 document.addEventListener('gesturestart',function(e){ e.preventDefault(); });
 
+window.DPPreview={play:playMini,still:stillMini,stop:function(){ stopMini(); }};
 playMini();
 })();
 </script>
