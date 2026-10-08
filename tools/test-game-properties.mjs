@@ -39,6 +39,11 @@ for (let game = 0; game < 2000; game++) {
 }
 console.log('ok 4 в ряд: 2000 seeded games,', placements, 'legal moves checked');
 
+const art = load('dobble', 'var SYM=', 'var ORDER=5;');
+assert.equal(art.SYM.length, 31); assert.equal(art.NAMES.length, 31);
+assert.equal(new Set(art.NAMES).size, 31);
+art.SYM.forEach(entry => assert.ok(entry[1].includes('class="sticker"')));
+
 // Every pair of distinct Dobble cards must share exactly one unique symbol.
 const dobble = load('dobble', 'var ORDER=5;', 'var DECK=buildDeck();');
 const deck = dobble.buildDeck();
@@ -50,6 +55,20 @@ for (let i=0; i<deck.length; i++) {
     const overlap=deck[i].filter(x=>deck[j].includes(x));
     assert.equal(overlap.length,1); assert.equal(dobble.common(deck[i],deck[j]),overlap[0]); pairs++;
   }
+}
+for(let seed=1;seed<=200;seed++){
+  let value=seed;const rng=()=>((value=(Math.imul(value,1664525)+1013904223)>>>0)/4294967296),order=deck.map((_,i)=>i);
+  for(let i=order.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[order[i],order[j]]=[order[j],order[i]];}
+  const schedule=dobble.pairSchedule(order);
+  assert.equal(schedule.length,29);
+  const seen=new Set();
+  schedule.forEach((pair,i)=>{
+    assert.notEqual(pair[0],pair[1]);
+    assert.equal(deck[pair[0]].filter(x=>deck[pair[1]].includes(x)).length,1);
+    assert.ok(!seen.has(pair.slice().sort((a,b)=>a-b).join(',')));
+    seen.add(pair.slice().sort((a,b)=>a-b).join(','));
+    if(i){assert.notEqual(pair[0],schedule[i-1][0]);assert.notEqual(pair[1],schedule[i-1][1]);}
+  });
 }
 console.log('ok Доббль: all', pairs, 'card pairs and 31 cards');
 

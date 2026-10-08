@@ -566,7 +566,7 @@ var NET = (function(){
     el.make.disabled = true; el.make.textContent = 'Создаём…';
     el.code.textContent = '·····';
     api_.myName = myName();
-    call('create', { game: opt ? opt.game : 'dvoeplay', name: api_.myName, free: free() }).then(function(res){
+    call('create', { game: opt ? (opt.roomGame || opt.game) : 'dvoeplay', name: api_.myName, free: free() }).then(function(res){
       el.make.disabled = false; el.make.textContent = 'Создать комнату';
       if (res.status !== 200){ say(res.body.error || 'Не получилось создать комнату'); return; }
       api_.code = res.body.code; api_.token = res.body.token;
@@ -584,7 +584,7 @@ var NET = (function(){
     if (code.length !== 5){ say('Нужны пять цифр'); return; }
     el.join.disabled = true; el.join.textContent = 'Входим…';
     api_.myName = myName();
-    call('join', { code: code, game: opt ? opt.game : undefined, name: api_.myName }).then(function(res){
+    call('join', { code: code, game: opt ? (opt.roomGame || opt.game) : undefined, name: api_.myName }).then(function(res){
       el.join.disabled = false; el.join.textContent = 'Войти';
       if (res.status !== 200){ say(res.body.error || 'Не получилось войти'); return; }
       api_.code = code; api_.token = res.body.token;

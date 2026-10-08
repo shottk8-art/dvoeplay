@@ -9,9 +9,9 @@ for(const page of pages){
 }
 for(const asset of ['motion.js','motion.css','net.js','sw.js']){
  const response=await fetch(new URL(asset,base));assert.equal(response.status,200,asset);
- if(asset==='sw.js')assert.ok((await response.text()).includes('dvoeplay-v7'));
+ if(asset==='sw.js')assert.ok((await response.text()).includes('dvoeplay-v8'));
 }
-console.log('PASS: all 11 pages, shared assets and v7 offline cache');
+console.log('PASS: all 11 pages, shared assets and v8 offline cache');
 async function call(action,data){
  const response=await fetch(new URL('api/'+action,base),{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(data)});
  const body=await response.json();return{status:response.status,body};

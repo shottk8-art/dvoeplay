@@ -122,21 +122,21 @@ const dobble = {
     return {
       playing: document.getElementById('app').classList.contains('playing'),
       seat: window.NET ? NET.seat : 0,
-      ready: !document.getElementById('cMid').classList.contains('back'),
-      mid: syms('#cMid'), mine: syms('#cBot'), theirs: syms('#cTop'),
+      ready: !document.getElementById('cBot').classList.contains('back'),
+      mid: syms('#cTop')+'|'+syms('#cBot'), mine: syms('#cBot'), theirs: syms('#cTop'),
       me: document.getElementById('numBot').textContent,
       opp: document.getElementById('numTop').textContent,
       over: document.getElementById('sheet').classList.contains('on')
     };
   }),
   /* у обоих экранов своя сторона — сравниваем, приведя к месту первого */
-  view: (s) => [s.mid, s.seat === 2 ? s.theirs : s.mine,
+  view: (s) => [s.seat===2?s.mine:s.theirs, s.seat === 2 ? s.theirs : s.mine,
                 s.seat === 2 ? s.opp + ':' + s.me : s.me + ':' + s.opp].join('|'),
   /* «ход» в этой игре — обе стороны хватают одну и ту же карту разом */
   async both(A, B){
     const grab = (p) => p.evaluate(() => {
       const set = (sel) => [].map.call(document.querySelectorAll(sel + ' .sy'), g => +g.dataset.s);
-      const mid = set('#cMid');
+      const mid = set('#cTop');
       const s = set('#cBot').filter(x => mid.indexOf(x) > -1)[0];
       if (s === undefined) return false;
       const g = document.querySelector('#cBot .sy[data-s="' + s + '"]');

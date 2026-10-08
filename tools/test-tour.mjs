@@ -271,7 +271,7 @@ await P.locator('#tzGo').click();
 ok('ушли во вторую игру', await went(/dobble\.html\?tour=\d+/));
 const dstate = () => P.evaluate(() => ({
   playing: document.getElementById('app').classList.contains('playing'),
-  ready: !document.getElementById('cMid').classList.contains('back'),
+  ready: !document.getElementById('cBot').classList.contains('back'),
   sheet: document.getElementById('sheet').classList.contains('on'),
   top: document.getElementById('numTop').textContent
 }));
@@ -283,7 +283,7 @@ for (let i = 0; i < 60; i++){
   if (!s.ready){ await wait(300); continue; }
   const pt = await P.evaluate(() => {
     const set = (q) => [].map.call(document.querySelectorAll(q + ' .sy'), (g) => +g.dataset.s);
-    const mid = set('#cMid'), m = set('#cTop').find((x) => mid.includes(x));
+    const mid = set('#cBot'), m = set('#cTop').find((x) => mid.includes(x));
     if (m === undefined) return null;
     const r = document.querySelector('#cTop .sy[data-s="' + m + '"] .hit').getBoundingClientRect();
     return { x: r.left + r.width / 2, y: r.top + r.height / 2 };

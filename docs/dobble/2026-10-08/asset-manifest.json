@@ -1,0 +1,171 @@
+{
+  "source": "Original SVGs authored in public/dobble.html; user photo used only as a visual-style reference, no photo extraction.",
+  "format": "SVG snippets, viewBox 0 0 24 24; no raster images or external requests",
+  "outline": "#202431, 1.45 units, round caps and joins",
+  "background": "white discs in both themes",
+  "palette": [
+    "#ff455c",
+    "#ffc629",
+    "#14b8ec",
+    "#77d42a",
+    "#a65bf2",
+    "#ff9329"
+  ],
+  "assets": [
+    {
+      "id": 0,
+      "name": "сердце",
+      "source": "public/dobble.html: SYM[0]"
+    },
+    {
+      "id": 1,
+      "name": "звезда",
+      "source": "public/dobble.html: SYM[1]"
+    },
+    {
+      "id": 2,
+      "name": "месяц",
+      "source": "public/dobble.html: SYM[2]"
+    },
+    {
+      "id": 3,
+      "name": "молния",
+      "source": "public/dobble.html: SYM[3]"
+    },
+    {
+      "id": 4,
+      "name": "капля",
+      "source": "public/dobble.html: SYM[4]"
+    },
+    {
+      "id": 5,
+      "name": "солнце",
+      "source": "public/dobble.html: SYM[5]"
+    },
+    {
+      "id": 6,
+      "name": "облако",
+      "source": "public/dobble.html: SYM[6]"
+    },
+    {
+      "id": 7,
+      "name": "лист",
+      "source": "public/dobble.html: SYM[7]"
+    },
+    {
+      "id": 8,
+      "name": "клевер",
+      "source": "public/dobble.html: SYM[8]"
+    },
+    {
+      "id": 9,
+      "name": "рыба",
+      "source": "public/dobble.html: SYM[9]"
+    },
+    {
+      "id": 10,
+      "name": "дом",
+      "source": "public/dobble.html: SYM[10]"
+    },
+    {
+      "id": 11,
+      "name": "ёлка",
+      "source": "public/dobble.html: SYM[11]"
+    },
+    {
+      "id": 12,
+      "name": "ключ",
+      "source": "public/dobble.html: SYM[12]"
+    },
+    {
+      "id": 13,
+      "name": "колокольчик",
+      "source": "public/dobble.html: SYM[13]"
+    },
+    {
+      "id": 14,
+      "name": "якорь",
+      "source": "public/dobble.html: SYM[14]"
+    },
+    {
+      "id": 15,
+      "name": "зонт",
+      "source": "public/dobble.html: SYM[15]"
+    },
+    {
+      "id": 16,
+      "name": "гриб",
+      "source": "public/dobble.html: SYM[16]"
+    },
+    {
+      "id": 17,
+      "name": "яблоко",
+      "source": "public/dobble.html: SYM[17]"
+    },
+    {
+      "id": 18,
+      "name": "вишня",
+      "source": "public/dobble.html: SYM[18]"
+    },
+    {
+      "id": 19,
+      "name": "корона",
+      "source": "public/dobble.html: SYM[19]"
+    },
+    {
+      "id": 20,
+      "name": "привидение",
+      "source": "public/dobble.html: SYM[20]"
+    },
+    {
+      "id": 21,
+      "name": "глаз",
+      "source": "public/dobble.html: SYM[21]"
+    },
+    {
+      "id": 22,
+      "name": "нота",
+      "source": "public/dobble.html: SYM[22]"
+    },
+    {
+      "id": 23,
+      "name": "снежинка",
+      "source": "public/dobble.html: SYM[23]"
+    },
+    {
+      "id": 24,
+      "name": "ракета",
+      "source": "public/dobble.html: SYM[24]"
+    },
+    {
+      "id": 25,
+      "name": "кружка",
+      "source": "public/dobble.html: SYM[25]"
+    },
+    {
+      "id": 26,
+      "name": "флаг",
+      "source": "public/dobble.html: SYM[26]"
+    },
+    {
+      "id": 27,
+      "name": "кристалл",
+      "source": "public/dobble.html: SYM[27]"
+    },
+    {
+      "id": 28,
+      "name": "замок",
+      "source": "public/dobble.html: SYM[28]"
+    },
+    {
+      "id": 29,
+      "name": "лампочка",
+      "source": "public/dobble.html: SYM[29]"
+    },
+    {
+      "id": 30,
+      "name": "кошка",
+      "source": "public/dobble.html: SYM[30]"
+    }
+  ]
+}
