@@ -40,12 +40,15 @@ TEST_BASE_URL=http://localhost:8787/ npm run test:browser
 | `public/net.js` | Общая сеть и лобби |
 | `public/tour.js` | Мини-турнир |
 | `public/motion.css`, `public/motion.js` | Движение диалогов, видимость и пауза заставок |
-| `public/sw.js` | Офлайн-кеш `dvoeplay-v8` |
+| `public/sw.js` | Офлайн-кеш `dvoeplay-v9` |
+| `assets/dobble/` | Исходные иллюстрации OpenMoji, лицензия и измеренные границы рисунков |
 | `netlify/functions/room.mjs` | Серверная функция `/api/*`, условная запись Netlify Blobs |
 | `netlify/functions/lib/rooms.mjs` | Логика комнат, очередь, результаты и реванши |
 | `tools/` | Локальный сервер, аудит, тесты и измерение анимаций |
 
 [Оформление и правила анимаций](DESIGN.md). [Обновление «Доббля»: два диска и цветные предметы](docs/dobble/2026-10-08/REPORT.md).
+
+Иллюстрации «Доббля» встроены в HTML и работают офлайн. Их можно заново собрать из сохранённых SVG командой `node tools/build-dobble-art.mjs`; происхождение, лицензия и адаптация описаны в `assets/dobble/README.md`.
 
 ## Публикация
 

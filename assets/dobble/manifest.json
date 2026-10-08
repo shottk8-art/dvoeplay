@@ -1,0 +1,416 @@
+{
+  "source": "OpenMoji",
+  "version": "17.0.0",
+  "sourceURL": "https://github.com/hfg-gmuend/openmoji/releases/tag/17.0.0",
+  "authors": "OpenMoji contributors / HfG Schwabisch Gmund",
+  "license": "CC-BY-SA-4.0",
+  "licenseURL": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "changes": "Recenter and normalize artwork to 22 units in a 24-unit frame; dark outlines increased from 2 to 3 native units; selected accent recolouring. Original paths preserved.",
+  "nativeDisplay": "64-88 CSS pixels on phone; SVG retains vector resolution",
+  "background": "White discs, light and dark themes",
+  "assets": [
+    {
+      "id": 0,
+      "name": "сердце",
+      "code": "2764",
+      "source": "openmoji/2764.svg",
+      "url": "https://raw.githubusercontent.com/hfg-gmuend/openmoji/17.0.0/color/svg/2764.svg",
+      "bounds": {
+        "height": 46.04239654541016,
+        "width": 47.00000485506925,
+        "x": 12.50000069358132,
+        "y": 12.50000069358132
+      }
+    },
+    {
+      "id": 1,
+      "name": "звезда",
+      "code": "2B50",
+      "source": "openmoji/2B50.svg",
+      "url": "https://raw.githubusercontent.com/hfg-gmuend/openmoji/17.0.0/color/svg/2B50.svg",
+      "bounds": {
+        "height": 50.527405825528234,
+        "width": 53.12119362571023,
+        "x": 9.439403187144888,
+        "y": 10.736298647793856
+      }
+    },
+    {
+      "id": 2,
+      "name": "месяц",
+      "code": "1F319",
+      "source": "openmoji/1F319.svg",
+      "url": "https://raw.githubusercontent.com/hfg-gmuend/openmoji/17.0.0/color/svg/1F319.svg",
+      "bounds": {
+        "height": 57.95990337025035,
+        "width": 57.27322665127841,
+        "x": 7.363386674360796,
+        "y": 7.020001498135653
+      }
+    },
+    {
+      "id": 3,
+      "name": "молния",
+      "code": "26A1",
+      "source": "openmoji/26A1.svg",
+      "url": "https://raw.githubusercontent.com/hfg-gmuend/openmoji/17.0.0/color/svg/26A1.svg",
+      "bounds": {
+        "height": 64.54780509255149,
+        "width": 39.89974698153409,
+        "x": 16.050126509232953,
+        "y": 3.7261005748401983
+      }
+    },
+    {
+      "id": 4,
+      "name": "капля",
+      "code": "1F4A7",
+      "source": "openmoji/1F4A7.svg",
+      "url": "https://raw.githubusercontent.com/hfg-gmuend/openmoji/17.0.0/color/svg/1F4A7.svg",
+      "bounds": {
+        "height": 64.00390070134944,
+        "width": 40.0001220703125,
+        "x": 15.999988902698863,
+        "y": 3.9990983442826704
+      }
+    },
+    {
+      "id": 5,
+      "name": "солнце",
+      "code": "2600",
+      "source": "openmoji/2600.svg",
+      "url": "https://raw.githubusercontent.com/hfg-gmuend/openmoji/17.0.0/color/svg/2600.svg",
+      "bounds": {
+        "height": 59.99999583851207,
+        "width": 59.99998959628019,
+        "x": 6.000002080743963,
+        "y": 5.999995838512074
+      }
+    },
+    {
+      "id": 6,
+      "name": "облако",
+      "code": "2601",
+      "source": "openmoji/2601.svg",
+      "url": "https://raw.githubusercontent.com/hfg-gmuend/openmoji/17.0.0/color/svg/2601.svg",
+      "bounds": {
+        "height": 37.48742398348722,
+        "width": 59.9999833540483,
+        "x": 6.0000083229758525,
+        "y": 17.2629921653054
+      }
+    },
+    {
+      "id": 7,
+      "name": "лист",
+      "code": "1F343",
+      "source": "openmoji/1F343.svg",
+      "url": "https://raw.githubusercontent.com/hfg-gmuend/openmoji/17.0.0/color/svg/1F343.svg",
+      "bounds": {
+        "height": 33.18440385298295,
+        "width": 45.82607199928977,
+        "x": 13.000022194602272,
+        "y": 18
+      }
+    },
+    {
+      "id": 8,
+      "name": "клевер",
+      "code": "1F340",
+      "source": "openmoji/1F340.svg",
+      "url": "https://raw.githubusercontent.com/hfg-gmuend/openmoji/17.0.0/color/svg/1F340.svg",
+      "bounds": {
+        "height": 52.94775945490057,
+        "width": 34.18425958806818,
+        "x": 21.926164106889203,
+        "y": 8.81645341352983
+      }
+    },
+    {
+      "id": 9,
+      "name": "рыба",
+      "code": "1F41F",
+      "source": "openmoji/1F41F.svg",
+      "url": "https://raw.githubusercontent.com/hfg-gmuend/openmoji/17.0.0/color/svg/1F41F.svg",
+      "bounds": {
+        "height": 38.79005293412642,
+        "width": 52.21132590553977,
+        "x": 10.998712713068182,
+        "y": 14.959958163174717
+      }
+    },
+    {
+      "id": 10,
+      "name": "дом",
+      "code": "1F3E0",
+      "source": "openmoji/1F3E0.svg",
+      "url": "https://raw.githubusercontent.com/hfg-gmuend/openmoji/17.0.0/color/svg/1F3E0.svg",
+      "bounds": {
+        "height": 41.00000277432528,
+        "width": 33.99999514493075,
+        "x": 18.99999930641868,
+        "y": 15.000008322975852
+      }
+    },
+    {
+      "id": 11,
+      "name": "ёлка",
+      "code": "1F332",
+      "source": "openmoji/1F332.svg",
+      "url": "https://raw.githubusercontent.com/hfg-gmuend/openmoji/17.0.0/color/svg/1F332.svg",
+      "bounds": {
+        "height": 58.97650701349432,
+        "width": 40.300048828125,
+        "x": 15.85005049272017,
+        "y": 6.296189741654829
+      }
+    },
+    {
+      "id": 12,
+      "name": "ключ",
+      "code": "1F511",
+      "source": "openmoji/1F511.svg",
+      "url": "https://raw.githubusercontent.com/hfg-gmuend/openmoji/17.0.0/color/svg/1F511.svg",
+      "bounds": {
+        "height": 43.09519542347301,
+        "width": 43.39484752308238,
+        "x": 14.302601207386363,
+        "y": 14.826199618252842
+      }
+    },
+    {
+      "id": 13,
+      "name": "колокольчик",
+      "code": "1F514",
+      "source": "openmoji/1F514.svg",
+      "url": "https://raw.githubusercontent.com/hfg-gmuend/openmoji/17.0.0/color/svg/1F514.svg",
+      "bounds": {
+        "height": 54.50000277432528,
+        "width": 41.49995561079545,
+        "x": 14.604825106534092,
+        "y": 8.282492897727273
+      }
+    },
+    {
+      "id": 14,
+      "name": "якорь",
+      "code": "2693",
+      "source": "openmoji/2693.svg",
+      "url": "https://raw.githubusercontent.com/hfg-gmuend/openmoji/17.0.0/color/svg/2693.svg",
+      "bounds": {
+        "height": 46.91102183948863,
+        "width": 45.96999289772727,
+        "x": 13.514981356534092,
+        "y": 13.419525146484377
+      }
+    },
+    {
+      "id": 15,
+      "name": "зонт",
+      "code": "2602",
+      "source": "openmoji/2602.svg",
+      "url": "https://raw.githubusercontent.com/hfg-gmuend/openmoji/17.0.0/color/svg/2602.svg",
+      "bounds": {
+        "height": 63.99995561079545,
+        "width": 64.00337635387073,
+        "x": 3.999997225674716,
+        "y": 4.0000221946022725
+      }
+    },
+    {
+      "id": 16,
+      "name": "гриб",
+      "code": "1F344",
+      "source": "openmoji/1F344.svg",
+      "url": "https://raw.githubusercontent.com/hfg-gmuend/openmoji/17.0.0/color/svg/1F344.svg",
+      "bounds": {
+        "height": 45.20040061257102,
+        "width": 50.00000277432528,
+        "x": 10.995991099964488,
+        "y": 10.95831298828125
+      }
+    },
+    {
+      "id": 17,
+      "name": "яблоко",
+      "code": "1F34E",
+      "source": "openmoji/1F34E.svg",
+      "url": "https://raw.githubusercontent.com/hfg-gmuend/openmoji/17.0.0/color/svg/1F34E.svg",
+      "bounds": {
+        "height": 50.15753173828125,
+        "width": 51.34540349786932,
+        "x": 10.232266512784092,
+        "y": 10.928999467329543
+      }
+    },
+    {
+      "id": 18,
+      "name": "вишня",
+      "code": "1F352",
+      "source": "openmoji/1F352.svg",
+      "url": "https://raw.githubusercontent.com/hfg-gmuend/openmoji/17.0.0/color/svg/1F352.svg",
+      "bounds": {
+        "height": 50.60003107244318,
+        "width": 34.3787675337358,
+        "x": 18.60000332919034,
+        "y": 10.699984463778408
+      }
+    },
+    {
+      "id": 19,
+      "name": "корона",
+      "code": "1F451",
+      "source": "openmoji/1F451.svg",
+      "url": "https://raw.githubusercontent.com/hfg-gmuend/openmoji/17.0.0/color/svg/1F451.svg",
+      "bounds": {
+        "height": 47.89080255681818,
+        "width": 63.99995561079545,
+        "x": 4.0000221946022725,
+        "y": 11.000011097301137
+      }
+    },
+    {
+      "id": 20,
+      "name": "привидение",
+      "code": "1F47B",
+      "source": "openmoji/1F47B.svg",
+      "url": "https://raw.githubusercontent.com/hfg-gmuend/openmoji/17.0.0/color/svg/1F47B.svg",
+      "bounds": {
+        "height": 49.11023504083807,
+        "width": 45.30022014271129,
+        "x": 13.839184154163709,
+        "y": 11.660638982599432
+      }
+    },
+    {
+      "id": 21,
+      "name": "глаз",
+      "code": "1F441",
+      "source": "openmoji/1F441.svg",
+      "url": "https://raw.githubusercontent.com/hfg-gmuend/openmoji/17.0.0/color/svg/1F441.svg",
+      "bounds": {
+        "height": 40.85640647194602,
+        "width": 69.61918778852983,
+        "x": 0.9404047185724432,
+        "y": 15.999988902698863
+      }
+    },
+    {
+      "id": 22,
+      "name": "нота",
+      "code": "1F3B5",
+      "source": "openmoji/1F3B5.svg",
+      "url": "https://raw.githubusercontent.com/hfg-gmuend/openmoji/17.0.0/color/svg/1F3B5.svg",
+      "bounds": {
+        "height": 44.50191983309659,
+        "width": 37.02367609197443,
+        "x": 14.96942138671875,
+        "y": 12.874977805397728
+      }
+    },
+    {
+      "id": 23,
+      "name": "снежинка",
+      "code": "2744",
+      "source": "openmoji/2744.svg",
+      "url": "https://raw.githubusercontent.com/hfg-gmuend/openmoji/17.0.0/color/svg/2744.svg",
+      "bounds": {
+        "height": 58.00002219460227,
+        "width": 49.99997780539773,
+        "x": 11.000011097301137,
+        "y": 6.999988902698863
+      }
+    },
+    {
+      "id": 24,
+      "name": "ракета",
+      "code": "1F680",
+      "source": "openmoji/1F680.svg",
+      "url": "https://raw.githubusercontent.com/hfg-gmuend/openmoji/17.0.0/color/svg/1F680.svg",
+      "bounds": {
+        "height": 48.00715775923295,
+        "width": 48.00306285511363,
+        "x": 11.987482244318182,
+        "y": 11.954723011363637
+      }
+    },
+    {
+      "id": 25,
+      "name": "кружка",
+      "code": "2615",
+      "source": "openmoji/2615.svg",
+      "url": "https://raw.githubusercontent.com/hfg-gmuend/openmoji/17.0.0/color/svg/2615.svg",
+      "bounds": {
+        "height": 42.39723899147727,
+        "width": 45.08734130859375,
+        "x": 15.912660078568893,
+        "y": 12.641668146306818
+      }
+    },
+    {
+      "id": 26,
+      "name": "флаг",
+      "code": "1F6A9",
+      "source": "openmoji/1F6A9.svg",
+      "url": "https://raw.githubusercontent.com/hfg-gmuend/openmoji/17.0.0/color/svg/1F6A9.svg",
+      "bounds": {
+        "height": 62.00004438920455,
+        "width": 61.99999445134943,
+        "x": 5.000002774325284,
+        "y": 4.9999778053977275
+      }
+    },
+    {
+      "id": 27,
+      "name": "кристалл",
+      "code": "1F48E",
+      "source": "openmoji/1F48E.svg",
+      "url": "https://raw.githubusercontent.com/hfg-gmuend/openmoji/17.0.0/color/svg/1F48E.svg",
+      "bounds": {
+        "height": 52.10390957919034,
+        "width": 63.99995561079545,
+        "x": 4.0000221946022725,
+        "y": 11.979791814630682
+      }
+    },
+    {
+      "id": 28,
+      "name": "замок",
+      "code": "1F512",
+      "source": "openmoji/1F512.svg",
+      "url": "https://raw.githubusercontent.com/hfg-gmuend/openmoji/17.0.0/color/svg/1F512.svg",
+      "bounds": {
+        "height": 46.786376953125,
+        "width": 38.09249600497159,
+        "x": 16.875,
+        "y": 12.385536887428977
+      }
+    },
+    {
+      "id": 29,
+      "name": "лампочка",
+      "code": "1F4A1",
+      "source": "openmoji/1F4A1.svg",
+      "url": "https://raw.githubusercontent.com/hfg-gmuend/openmoji/17.0.0/color/svg/1F4A1.svg",
+      "bounds": {
+        "height": 57.45799671519887,
+        "width": 33.35828746448863,
+        "x": 19.191716974431817,
+        "y": 7.198991255326704
+      }
+    },
+    {
+      "id": 30,
+      "name": "кошка",
+      "code": "1F431",
+      "source": "openmoji/1F431.svg",
+      "url": "https://raw.githubusercontent.com/hfg-gmuend/openmoji/17.0.0/color/svg/1F431.svg",
+      "bounds": {
+        "height": 54.7693925337358,
+        "width": 50.671086398038,
+        "x": 11.060417175292969,
+        "y": 11.209999778053977
+      }
+    }
+  ]
+}
