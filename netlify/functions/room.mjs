@@ -32,6 +32,11 @@ export function blobStore(store = getStore({ name: 'rooms', consistency: 'strong
                 : { onlyIfMatch: etag };
       // При сбое клиент повторит ход. Безусловная запись могла бы стереть ход соперника.
       const res = await store.setJSON(k, v, how);
+      // The SDK can report modified:true for non-412 HTTP failures without an ETag.
+      // https://github.com/netlify/primitives/issues/741
+      if (res && res.modified && (typeof res.etag !== 'string' || !res.etag)){
+        throw new Error('Storage write was not confirmed by an ETag');
+      }
       return !!(res && res.modified);
     },
     async del(k){ await store.delete(k); }
