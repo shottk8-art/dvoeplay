@@ -648,11 +648,30 @@ var NET = (function(){
     });
   }
 
+  /* Result and rematch are idempotent within a round. A failed write must
+     be retried, just like a move, even if polling superseded its response. */
+  function persist(action, data, done){
+    var token = api_.token, round = api_.round, tries = 0;
+    function current(){ return api_.on && api_.token === token && api_.round === round; }
+    function attempt(){
+      if (!current()) return;
+      var g = ++gen;
+      call(action, data).then(function(res){
+        if (!current()) return;
+        if (res.status === 0 || res.status >= 500){
+          setTimeout(attempt, Math.min(400 * (++tries), 3000));
+          return;
+        }
+        if (done) done(res, g === gen);
+      });
+    }
+    attempt();
+  }
+
   function result(winner){
     over = true;
     if (!api_.on) return;
-    gen++;                                   /* прежние ответы уже неактуальны */
-    call('result', { code:api_.code, token:api_.token, winner: winner | 0, round:api_.round });
+    persist('result', { code:api_.code, token:api_.token, winner: winner | 0, round:api_.round });
     poll(700);
   }
 
@@ -671,11 +690,9 @@ var NET = (function(){
       if (!againLabel) againLabel = b.textContent;
       b.disabled = true; b.textContent = 'Ждём соперника…';
     }
-    var g = ++gen;
-    call('again', { code:api_.code, token:api_.token, round:api_.round }).then(function(res){
-      if (g !== gen || !api_.on) return;
+    persist('again', { code:api_.code, token:api_.token, round:api_.round }, function(res, latest){
       if (res.status !== 200){ resetAgain(); return; }
-      apply(res);
+      if (latest) apply(res); else poll(60);
     });
     poll(700);
   }

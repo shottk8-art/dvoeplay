@@ -26,6 +26,12 @@ const ready=page=>until(page,state,s=>s.ready||s.sheet,9000);
 const browser=await launch();
 try{
  const A=await tab(browser,rep,'A'),B=await tab(browser,rep,'B');
+ const retries={result:0,again:0};
+ for(const action of ['result','again'])await A.route('**/api/'+action,async route=>{
+  retries[action]++;
+  if(retries[action]===1)await route.fulfill({status:500,contentType:'application/json',body:'{"error":"Temporary test failure"}'});
+  else await route.continue();
+ });
  await A.goto(GAME_URL);await B.goto(GAME_URL);
  await lobby.openFrom(A,'.row[data-mode="3"]');const code=await lobby.create(A);
  await lobby.openFrom(B,'.row[data-mode="3"]');await lobby.join(B,code);
@@ -56,9 +62,11 @@ try{
  }
  await until(A,state,s=>s.sheet,5000);await until(B,state,s=>s.sheet,5000);a=await state(A);b=await state(B);
  ok('29 совпадений и один итог у обоих',a.sheet&&b.sheet&&a.scores[0]+a.scores[1]===29&&a.scores.join()===b.scores.slice().reverse().join());
+ ok('ошибка сохранения результата повторяет запрос',await until(A,async()=>retries.result,n=>n>=2,9000));
  await A.locator('#again').click();ok('ожидание согласия',await until(A,state,s=>/Ждём/.test(s.again),5000));
  await B.locator('#again').click();ok('реванш начинает новую пару',await until(A,state,s=>!s.sheet&&s.scores[0]+s.scores[1]===0,12000));await ready(A);await ready(B);
  a=await state(A);b=await state(B);ok('реванш синхронен',a.bottom.join()===b.top.join()&&a.top.join()===b.bottom.join());
+ ok('ошибка согласия на реванш повторяет запрос',retries.again>=2);
  await B.locator('#toMenuTop').click();ok('выход соперника виден',await until(A,lobby.warned,w=>w.shown&&/вышел/.test(w.text),12000));await A.locator('#toMenuTop').click();
  for(const reducedMotion of ['no-preference','reduce']){
   const context=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true,serviceWorkers:'block',reducedMotion});
