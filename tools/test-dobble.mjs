@@ -17,7 +17,7 @@ const tap=async(page,card,s,near=false,touch=false)=>{
  const point=await page.evaluate(([card,s,near])=>{
   const g=document.querySelector(card+' .sy[data-s="'+s+'"]'),r=g.querySelector('.hit').getBoundingClientRect(),cr=document.querySelector(card).getBoundingClientRect();
   let x=r.left+r.width/2,y=r.top+r.height/2;
-  if(near){const k=+/scale\(([\d.]+)\)/.exec(g.parentNode.getAttribute('transform'))[1],rad=12*k*cr.width/200,dx=x-(cr.left+cr.width/2),dy=y-(cr.top+cr.height/2),len=Math.hypot(dx,dy);x+=dx/len*rad*1.08;y+=dy/len*rad*1.08;}
+  if(near){const k=+/scale\(([\d.]+)\)/.exec(g.parentNode.getAttribute('transform'))[1],rad=12*k*cr.width/200,dx=x-(cr.left+cr.width/2),dy=y-(cr.top+cr.height/2),len=Math.hypot(dx,dy);if(len<1)throw new Error('Near-border tap requires an outer symbol');x+=dx/len*rad*1.08;y+=dy/len*rad*1.08;}
   return{x,y};
  },[card,s,near]);
  if(touch)await page.touchscreen.tap(point.x,point.y);else await page.mouse.click(point.x,point.y);
@@ -76,7 +76,11 @@ try{
    const before=await state(page),s=before.match[0];await tap(page,card,s,false,true);await until(page,state,v=>v.scores[0]+v.scores[1]>before.scores[0]+before.scores[1],4000);await ready(page);
   }
   a=await state(page);ok(reducedMotion+': оба игрока могут нажать, включая верхний повёрнутый диск',a.scores.join()==='1,1');
-  const bad=a.top.find(s=>!a.bottom.includes(s));await tap(page,'#cTop',bad,true,true);
+  // Choose an outer symbol: a central symbol has no outward radial direction.
+  const bad=await page.evaluate(candidates=>{
+   const c=document.querySelector('#cTop').getBoundingClientRect();
+   return candidates.map(s=>{const r=document.querySelector('#cTop .sy[data-s="'+s+'"] .hit').getBoundingClientRect();return{s,d:Math.hypot(r.left+r.width/2-c.left-c.width/2,r.top+r.height/2-c.top-c.height/2)};}).sort((a,b)=>b.d-a.d)[0].s;
+  },a.top.filter(s=>!a.bottom.includes(s)));await tap(page,'#cTop',bad,true,true);
   ok(reducedMotion+': касание рядом с символом учитывает поворот',await until(page,state,s=>s.frozen[1],2000));
   await wait(1200);a=await state(page);await tap(page,'#cBot',a.match[0],false,true);await wait(100);await page.locator('#restart').click();await wait(700);
   a=await state(page);ok(reducedMotion+': перезапуск отменяет прежнюю смену пары',a.scores.join()==='0,0'&&a.discs===2&&!a.central);

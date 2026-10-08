@@ -40,7 +40,7 @@ TEST_BASE_URL=http://localhost:8787/ npm run test:browser
 | `public/net.js` | Общая сеть и лобби |
 | `public/tour.js` | Мини-турнир |
 | `public/motion.css`, `public/motion.js` | Движение диалогов, видимость и пауза заставок |
-| `public/sw.js` | Офлайн-кеш `dvoeplay-v9` |
+| `public/sw.js` | Офлайн-кеш `dvoeplay-v10` |
 | `assets/dobble/` | Исходные иллюстрации OpenMoji, лицензия и измеренные границы рисунков |
 | `netlify/functions/room.mjs` | Серверная функция `/api/*`, условная запись Netlify Blobs |
 | `netlify/functions/lib/rooms.mjs` | Логика комнат, очередь, результаты и реванши |

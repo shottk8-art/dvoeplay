@@ -12,7 +12,7 @@ const palette={
 };
 const symbols=[];
 for(const asset of manifest.assets){
-  const svg=await fs.readFile(new URL('assets/dobble/'+asset.source,root),'utf8');
+  const svg=await fs.readFile(new URL('assets/dobble/'+(asset.adaptedSource||asset.source),root),'utf8');
   assert.ok(!/<script|<foreignObject|\bon\w+\s*=|\bhref\s*=|url\(|<defs/i.test(svg),'self-contained artwork');
   let inner=svg.replace(/^<svg\b[^>]*>/,'').replace(/<\/svg>\s*$/,'')
     .replace(/\s+id="[^"]*"/g,'').replace(/<g\s*\/>/g,'')
@@ -24,7 +24,7 @@ for(const asset of manifest.assets){
   if(asset.code==='1F3B5')inner=inner.replace(/#3f3f3f/gi,'#9863DA');
   if(asset.code==='2744')inner=inner.replace(/#202431/g,'#298AC8');
   if(asset.code==='2615')inner=inner.replace(/fill="#fff"/gi,'fill="#FFD28A"');
-  const b=asset.bounds,size=Math.max(b.width,b.height);
+  const b=asset.adaptedBounds||asset.bounds,size=Math.max(b.width,b.height);
   assert.ok(size>0&&size<73);
   const scale=22/size,cx=b.x+b.width/2,cy=b.y+b.height/2;
   const transform='translate(12 12) scale('+scale.toFixed(7)+') translate('+(-cx).toFixed(5)+' '+(-cy).toFixed(5)+')';
@@ -39,4 +39,4 @@ await fs.writeFile(pageURL,page);
 const preview='<!doctype html><meta charset="utf-8"><title>Доббль — обновлённые предметы</title><style>body{margin:20px;background:#f2f2f7;font:14px system-ui;display:grid;grid-template-columns:repeat(5,1fr);gap:12px}figure{margin:0;padding:16px;background:white;border-radius:18px;text-align:center}svg{width:88px;height:88px}.sticker{stroke:none}figcaption{margin-top:8px}</style>'+symbols.map((s,id)=>'<figure><svg viewBox="0 0 24 24">'+s[1]+'</svg><figcaption>'+manifest.assets[id].name+'</figcaption></figure>').join('');
 await fs.mkdir(new URL('docs/dobble/2026-10-08/art-v2/',root),{recursive:true});
 await fs.writeFile(new URL('docs/dobble/2026-10-08/art-v2/symbols.html',root),preview);
-console.log('Compiled 31 vector assets; source paths and matching IDs preserved');
+console.log('Compiled 31 vector assets; matching IDs preserved');

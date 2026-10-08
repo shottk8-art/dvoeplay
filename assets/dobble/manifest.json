@@ -5,7 +5,7 @@
   "authors": "OpenMoji contributors / HfG Schwabisch Gmund",
   "license": "CC-BY-SA-4.0",
   "licenseURL": "https://creativecommons.org/licenses/by-sa/4.0/",
-  "changes": "Recenter and normalize artwork to 22 units in a 24-unit frame; dark outlines increased from 2 to 3 native units; selected accent recolouring. Original paths preserved.",
+  "changes": "Recenter and normalize; heavier dark outlines and vivid accents; six refined vector sources close contours and clarify four-leaf clover. Unmodified OpenMoji originals preserved.",
   "nativeDisplay": "64-88 CSS pixels on phone; SVG retains vector resolution",
   "background": "White discs, light and dark themes",
   "assets": [
@@ -124,7 +124,16 @@
         "width": 34.18425958806818,
         "x": 21.926164106889203,
         "y": 8.81645341352983
-      }
+      },
+      "adaptedSource": "refined/1F340.svg",
+      "adaptation": "Redraw four distinct heart-shaped leaflets and connected stem",
+      "adaptedBounds": {
+        "x": 8,
+        "y": 7,
+        "width": 56,
+        "height": 59
+      },
+      "adaptedBoundsMethod": "Conservative native envelope including stroke; leaflets and stem fit within x=8..64, y=7..66"
     },
     {
       "id": 9,
@@ -176,7 +185,9 @@
         "width": 43.39484752308238,
         "x": 14.302601207386363,
         "y": 14.826199618252842
-      }
+      },
+      "adaptedSource": "refined/1F511.svg",
+      "adaptation": "Unify head and teeth into a closed key silhouette"
     },
     {
       "id": 13,
@@ -228,7 +239,9 @@
         "width": 50.00000277432528,
         "x": 10.995991099964488,
         "y": 10.95831298828125
-      }
+      },
+      "adaptedSource": "refined/1F344.svg",
+      "adaptation": "Connect mushroom stem outline to cap"
     },
     {
       "id": 17,
@@ -241,7 +254,9 @@
         "width": 51.34540349786932,
         "x": 10.232266512784092,
         "y": 10.928999467329543
-      }
+      },
+      "adaptedSource": "refined/1F34E.svg",
+      "adaptation": "Close apple body contour and join stem; layer leaf above outline"
     },
     {
       "id": 18,
@@ -254,7 +269,9 @@
         "width": 34.3787675337358,
         "x": 18.60000332919034,
         "y": 10.699984463778408
-      }
+      },
+      "adaptedSource": "refined/1F352.svg",
+      "adaptation": "Complete berry contours with rear-to-front layering and join leaf stem"
     },
     {
       "id": 19,
@@ -410,7 +427,9 @@
         "width": 50.671086398038,
         "x": 11.060417175292969,
         "y": 11.209999778053977
-      }
+      },
+      "adaptedSource": "refined/1F431.svg",
+      "adaptation": "Close face contour along original filled silhouette; retain facial details"
     }
   ]
 }
