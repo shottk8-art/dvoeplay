@@ -6,7 +6,7 @@ const reportDir = process.env.TEST_REPORT_DIR
   : new URL('../docs/testing/latest/', import.meta.url);
 mkdirSync(reportDir, { recursive: true });
 const list = ['test-rooms','test-race','test-dvoeplay','test-matreshka','test-magnit','test-dots',
-              'test-memo','test-5bukv','test-yaschik','test-viselica','test-dobble','test-vzlomshik','test-lock','test-names','test-theme','test-hero','test-pair','test-tour','test-keyboard','test-layout','test-app','test-lost','test-soak',
+              'test-memo','test-5bukv','test-yaschik','test-viselica','test-dobble','test-vzlomshik','test-lock','test-sheet-drag','test-names','test-theme','test-hero','test-pair','test-tour','test-keyboard','test-layout','test-app','test-lost','test-soak',
               'test-round-boundaries','test-blob-store','test-game-properties','test-dialog-visibility','test-motion'];
 const bad = [];
 const results = [];

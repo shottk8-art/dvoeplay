@@ -77,3 +77,77 @@
   if(reduced.matches){ running=false;cancelPreview();showStill(); }
   syncState();
 })();
+
+/* Шторки тянутся вниз за язычок, как в приложениях iPhone. Работает для всех
+   шторок серии — каталога, итогов партии и лобби сетевой игры (net.js).
+   Тянуть можно за язычок и за верхнюю полосу шторки (до заголовка); кнопки
+   и поля там не перехватываются. Отпустили ниже порога или смахнули быстро —
+   шторка закрывается тем же путём, что и нажатие на затемнение (у каждой
+   страницы своё закрытие: «Готово», сброс турнира и т. п. остаются за ней);
+   иначе возвращается на место. Пока в шторке набирают текст, жест выключен. */
+(function(){
+  'use strict';
+  var ZONE=56, FAR=90, FAST=0.55;              /* px от верха шторки; px сдвига; px/мс */
+  var drag=null;
+  function sheetOf(t){
+    var s=t && t.closest && t.closest('.sheet,.np-sheet');
+    if(!s) return null;
+    var open=s.classList.contains('on') ||
+      (s.classList.contains('np-sheet') ? document.body.classList.contains('np-open')
+        : document.body.classList.contains('open'));
+    if(!open || s.classList.contains('typing') || s.classList.contains('np-typing')) return null;
+    return s;
+  }
+  function backdropOf(s){
+    return document.getElementById(s.classList.contains('np-sheet') ? 'npBack' : 'backdrop');
+  }
+  function start(x,y,t){
+    var s=sheetOf(t); if(!s || !backdropOf(s)) return false;
+    if(t.closest('button,a,input,textarea,select,label,[role="button"],[role="switch"]')) return false;
+    var top=s.getBoundingClientRect().top;
+    if(!(t.closest('.grab,.np-grab') || y-top<=ZONE)) return false;
+    drag={s:s,y0:y,y:y,t0:Date.now(),t:Date.now(),v:0,moved:false};
+    return true;
+  }
+  function move(y){
+    if(!drag) return false;
+    var dy=Math.max(0,y-drag.y0), now=Date.now();
+    if(now>drag.t) drag.v=(y-drag.y)/(now-drag.t);
+    drag.y=y; drag.t=now;
+    if(!drag.moved && dy<4) return false;
+    drag.moved=true;
+    drag.s.style.transition='none';
+    drag.s.style.transform='translateY('+dy+'px)';
+    return true;
+  }
+  function end(){
+    if(!drag) return;
+    var d=drag; drag=null;
+    if(!d.moved) return;
+    var dy=d.y-d.y0, close=dy>FAR || (dy>24 && d.v>FAST);
+    d.s.style.transition='';                    /* дальше едет своим CSS-переходом */
+    d.s.style.transform='';
+    if(close){
+      var b=backdropOf(d.s);
+      if(b) b.click();
+    }
+  }
+  /* касание: двигаем шторку и не даём странице прокручиваться под пальцем */
+  document.addEventListener('touchstart',function(e){
+    if(e.touches.length!==1) return;
+    start(e.touches[0].clientX,e.touches[0].clientY,e.target);
+  },{passive:true});
+  document.addEventListener('touchmove',function(e){
+    if(!drag) return;
+    move(e.touches[0].clientY);
+    if(e.cancelable) e.preventDefault();           /* с первого же пикселя, иначе под шторкой поедет страница */
+  },{passive:false});
+  document.addEventListener('touchend',end,{passive:true});
+  document.addEventListener('touchcancel',end,{passive:true});
+  /* мышь — на компьютере тоже можно смахнуть */
+  document.addEventListener('mousedown',function(e){
+    if(e.button===0 && start(e.clientX,e.clientY,e.target)) e.preventDefault();
+  });
+  document.addEventListener('mousemove',function(e){ if(drag) move(e.clientY); });
+  document.addEventListener('mouseup',end);
+})();

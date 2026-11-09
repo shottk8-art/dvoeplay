@@ -194,8 +194,7 @@ body{
    жёлтая. Имена классов с приставкой: короткое .cont в этом файле уже занято
    строкой «Продолжить», и ярлык от неё растягивался на всю карточку. */
 .badge.b-cont{background:linear-gradient(180deg,#3F9BFF,#0A72E8)}
-.badge.b-secret{background:linear-gradient(180deg,#8E5CFF,#6A2FE0)}
-.hero-q span{font-size:104px;font-weight:800;line-height:1;color:rgba(255,255,255,.22);animation:float 6.4s ease-in-out infinite}
+.badge.b-pop{background:linear-gradient(180deg,#8E5CFF,#6A2FE0)}
 .badge.b-fav{background:linear-gradient(180deg,var(--yel-a),var(--yel-b));color:#1C1C1E}
 /* Текст прижат к низу плашки и занимает в ней ровно столько же места
    при любой игре: высота плашки задана, название — одна строка, подпись —
@@ -1348,12 +1347,6 @@ function heroPicks(){
      что это за игра. Повод (счёт, сколько партий) идёт отдельной строкой
      над названием и не съедает описание. */
   if(fresh) picks.push({key:'new', label:(fresh.lock?'Открыто':FEATURED_LABEL), g:fresh, cta:'Играть', meta:''});
-  /* пока игра закрыта — тизер вместо «Нового»: интрига, а не название */
-  if(GAMES.some(isLocked)){
-    var got=hardDone().length, need=hardNeed().length;
-    picks.push({key:'secret', label:'Секрет', cta:'Как открыть', meta:'Пройдено '+got+' из '+need,
-                g:{id:'secret', title:'Секретная игра', href:'#', full:'Победите на «Сложно» во всех играх — и она откроется'}});
-  }
   if(cont){
     s=cont.s;
     picks.push({key:'cont', label:'Продолжить', g:cont.g, cta:'Продолжить',
@@ -1363,6 +1356,16 @@ function heroPicks(){
     s=fav.s;
     picks.push({key:'fav', label:'Любимая', g:fav.g, cta:'Играть',
                 meta:'Сыграно '+s.plays+' '+plural(s.plays,'партия','партии','партий')});
+  }
+  /* «Популярная» — одна из любимых у всех игр серии (SUGGEST и остальные), каждый
+     раз другая и не та, что уже в «Продолжить» или «Любимой». Так плашка меняется
+     при каждом открытии и у нового игрока, пока «Новое» закрыто секретом. */
+  var taken={}; if(cont) taken[cont.g.id]=1; if(fav) taken[fav.g.id]=1;
+  var pool=SUGGEST.map(byId).filter(function(g){ return playable(g) && !taken[g.id] && !g.lock; });
+  if(!pool.length) pool=GAMES.filter(function(g){ return playable(g) && !taken[g.id] && !g.lock; });
+  if(pool.length){
+    var pop=pool[(Math.random()*pool.length)|0];
+    picks.push({key:'pop', label:'Популярная', g:pop, cta:'Играть', meta:''});
   }
   /* Пока идёт турнир, продолжать надо турнир — его карточка наверху. Плашка
      «Продолжить» с прошлой игрой звала бы туда же, но мимо турнира. */
@@ -1382,10 +1385,13 @@ function renderHero(){
   if(!picks.length) return;
   for(i=0;i<picks.length;i++) if(picks[i].key===was) at=i+1;   /* следующий по кругу */
   var p=picks[at%picks.length];
+  /* секретную игру только что открыли — в первый раз показываем её без очереди */
+  for(i=0;i<picks.length;i++) if(picks[i].key==='new' && picks[i].g.lock){
+    try{ if(localStorage.getItem('dvoeplay:unlock-seen')!=='1'){ p=picks[i]; localStorage.setItem('dvoeplay:unlock-seen','1'); } }catch(e){}
+  }
   DP.hero(p.key);
   HERO_ID=p.g.id;
-  var art=p.key==='secret' ? '<div class="hero-generic hero-q" aria-hidden="true"><span>?</span></div>'
-        : HERO_ART[p.g.id] || '<div class="hero-generic" aria-hidden="true">'+(TILE_ART[p.g.art]||'')+'</div>';
+  var art=HERO_ART[p.g.id] || '<div class="hero-generic" aria-hidden="true">'+(TILE_ART[p.g.art]||'')+'</div>';
   document.getElementById('hero').innerHTML=
     '<a class="hero" href="'+esc(p.g.href)+'">'+
       '<span class="badge b-'+p.key+'">'+esc(p.label)+'</span>'+
@@ -1399,7 +1405,6 @@ function renderHero(){
         '<span class="play">'+esc(p.cta)+'</span>'+
       '</span>'+
     '</a>';
-  if(p.key==='secret') document.querySelector('#hero .hero').addEventListener('click',function(e){ e.preventDefault(); openLock(); });
 }
 
 /* ---------- продолжить / с чего начать ---------- */

@@ -34,17 +34,15 @@ ok('плитка закрыта', await p.locator('#lockTile').count() === 1);
 ok('ни названия, ни картинки игры', !/Взломщик|vzlomshik|art-lock/.test(bento));
 ok('на плитке прогресс 0 из 9', /0 из 9/.test(await p.textContent('#lockTile')));
 ok('счётчик — «Открыто 9 из 10»', (await p.textContent('#count')) === 'Открыто 9 из 10');
-ok('в плашке — тизер «Секрет»', (await p.textContent('#hero .badge')) === 'Секрет');
-ok('тизер не называет игру', !/Взломщик/.test(await p.textContent('#hero')));
+ok('в плашке — «Популярная», а не закрытая игра', (await p.textContent('#hero .badge')) === 'Популярная');
+ok('плашка не называет закрытую игру', !/Взломщик/.test(await p.textContent('#hero')));
 
 await p.click('#lockTile'); await wait(450);
 ok('плитка открывает шторку «Как открыть»', await p.evaluate(() => document.getElementById('lockSheet').classList.contains('on')));
 ok('в шторке девять игр', await p.locator('#lockBody .lrow').count() === 9);
 ok('шторка тоже не называет игру', !/Взломщик/.test(await p.textContent('#lockSheet')));
 await p.click('#lockClose'); await wait(300);
-await p.click('#hero .hero'); await wait(450);
-ok('тизер в плашке открывает ту же шторку', await p.evaluate(() => document.getElementById('lockSheet').classList.contains('on')));
-await p.keyboard.press('Escape'); await wait(300);
+/* плашка ведёт в обычную игру; к секрету — только плитка */
 
 await p.goto(BASE + 'vzlomshik.html'); await wait(500);
 ok('прямой заход — обратно в каталог', /index\.html$/.test(p.url()), p.url());

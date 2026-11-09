@@ -37,3 +37,15 @@ html.motion-ready .np-sheet.np-typing { transition-duration: .16s, 0s; }
   html.motion-ready .np-open .np-sheet { transition-delay: 0s; }
   .mini *, .hero-art *, .hero-generic *, .art * { animation: none !important; }
 }
+
+/* язычок шторки: за него тянут вниз (motion.js) — побольше место для пальца */
+.grab,.np-grab{position:relative;cursor:grab}
+.grab::after,.np-grab::after{content:"";position:absolute;left:-40px;right:-40px;top:-14px;bottom:-14px}
+
+/* Долгое нажатие на фишку, карту или кнопку не выделяет их и не зовёт меню
+   «Скопировать / Найти» — это игры, а не текст. Поля ввода (имена, код
+   комнаты, слова) выделяются и вставляются как обычно. */
+html,body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+html,body{overscroll-behavior-y:none}   /* без резиновой оттяжки всей страницы */
+input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
+img,svg{-webkit-user-drag:none}

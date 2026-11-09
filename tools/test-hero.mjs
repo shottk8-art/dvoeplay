@@ -68,13 +68,14 @@ rep.head('первый запуск');
 const fresh = await phone(null);
 let a = await open(fresh), b = await open(fresh), c = await open(fresh);
 ok('в плашке «Новое» (открытая игра — «Открыто»)', a.badge === 'Открыто', a.badge);
-ok('и она не скачет, пока истории нет',
-   a.title === b.title && b.title === c.title, [a.title, b.title, c.title]);
+ok('пока истории нет — по очереди с «Популярной»', b.badge === 'Популярная' && c.badge === 'Открыто', [a.badge, b.badge, c.badge]);
+ok('популярная — не та же игра', b.title !== a.title, [a.title, b.title]);
 ok('кнопка зовёт играть', a.cta === 'Играть', a.cta);
 ok('описание новинки показано целиком, без обрезки', !a.noteCut, a.note);
 
 /* ───────── одна сыгранная игра: два повода по очереди ───────── */
 rep.head('сыграна одна партия');
+/* «Популярная» есть всегда: плашка меняется при каждом открытии (просьба владельца 09.11.2026) */
 const one = await phone({ 'matreshka': { plays:1, w1:1, w2:0, last:N - 3600e3, note:'Счёт 1 : 0', mode:2 } });
 a = await open(one); b = await open(one); c = await open(one);
 ok('сначала «Новое»', a.badge === 'Открыто', a.badge);
@@ -83,7 +84,7 @@ ok('потом «Продолжить» с той самой игрой', b.badg
 ok('кнопка там тоже «Продолжить»', b.cta === 'Продолжить', b.cta);
 ok('в строке повода счёт и когда играли', /Счёт 1 : 0 · /.test(b.meta || ''), b.meta);
 ok('а в подписи — описание игры', b.note === 'Большая фишка накрывает меньшую', b.note);
-ok('дальше по кругу снова «Новое»', c.badge === 'Открыто', c.badge);
+ok('дальше по кругу — «Популярная»', c.badge === 'Популярная' && c.title !== 'Матрёшка', [c.badge, c.title]);
 ok('одной партии для «Любимой» мало', b.kind !== 'b-fav' && a.kind !== 'b-fav');
 
 /* ───────── три повода ───────── */
@@ -95,8 +96,8 @@ const many = await phone({
 });
 const seen = [];
 for (let i = 0; i < 6; i++) seen.push(await open(many));
-ok('очередь идёт: новое → продолжить → любимая',
-   seen.map(s => s.badge).join(',') === 'Открыто,Продолжить,Любимая,Открыто,Продолжить,Любимая',
+ok('очередь идёт: новое → продолжить → любимая → популярная',
+   seen.map(s => s.badge).join(',') === 'Открыто,Продолжить,Любимая,Популярная,Открыто,Продолжить',
    seen.map(s => s.badge).join(','));
 ok('«Продолжить» — последняя сыгранная', seen[1].title === 'Матрёшка', seen[1].title);
 ok('«Любимая» — та, где партий больше всего', seen[2].title === 'Точки и квадраты', seen[2].title);
@@ -124,8 +125,9 @@ for (const [id, title] of ALL){
   const one = {};
   one[id] = { plays:1, w1:1, w2:0, last:N - 600e3, note:'Счёт 1 : 0', mode:2 };
   const p = await phone(one);
-  await open(p);                      /* первый заход — «Новое» */
-  const s = await open(p);            /* второй — «Продолжить» с нашей игрой */
+  /* поводы идут по кругу — берём заход, где плашка «Продолжить» с нашей игрой */
+  let s = await open(p);
+  for (let k = 0; k < 3 && s.badge !== 'Продолжить'; k++) s = await open(p);
   ok(title + ': название не заезжает под кнопку',
      s.h3box && s.playbox && s.h3box.right <= s.playbox.x + 1,
      s.h3box && [Math.round(s.h3box.right), Math.round(s.playbox.x)]);
