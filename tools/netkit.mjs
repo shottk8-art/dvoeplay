@@ -21,16 +21,42 @@ export function reporter(){
   return st;
 }
 
-export async function launch(){
+/* «Взломщик кода» закрыт, пока не пройдено «Сложно» в остальных девяти играх
+   (index.html, GAMES с lock:true). Наборы проверок играют во все десять,
+   поэтому стенд по умолчанию начинает с открытой игрой: отметки d.hard
+   кладутся в память перед каждой страницей, если их там нет. Закрытую игру
+   проверяет test-lock.mjs — ему нужен launch({ locked: true }). */
+const HARD_IDS = ['dvoeplay','magnitniy-boy','memo-duel','matreshka','dots-boxes','5-bukv','viselica','zahlopni-yaschik','dobble'];
+/* те же отметки готовым объектом — для тестов, которые сами кладут память
+   «только если пусто»: стенд успевает раньше них, поэтому они кладут и это */
+export const HARD = Object.fromEntries(HARD_IDS.map(id => [id, 1]));
+function unlockAll(ids){
+  try{
+    var d = JSON.parse(localStorage.getItem('dvoeplay:v1') || 'null') || { v: 1, games: {} };
+    if (d.hard) return;
+    d.hard = {}; ids.forEach(function(id){ d.hard[id] = 1; });
+    localStorage.setItem('dvoeplay:v1', JSON.stringify(d));
+  }catch(e){}
+}
+
+export async function launch(opts = {}){
   /* Два окна в одном браузере: невидимому Chromium придерживает таймеры, и
      игра там отстаёт. У живых игроков по телефону на каждого, так что это
      артефакт стенда — отключаем, иначе тесты врут. */
-  return await chromium.launch({
+  const browser = await chromium.launch({
     ...(process.env.PLAYWRIGHT_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH } : {}),
     args: ['--disable-background-timer-throttling',
            '--disable-backgrounding-occluded-windows',
            '--disable-renderer-backgrounding']
   });
+  if (opts.locked) return browser;
+  const make = browser.newContext.bind(browser);
+  browser.newContext = async (...args) => {
+    const ctx = await make(...args);
+    await ctx.addInitScript(unlockAll, HARD_IDS);
+    return ctx;
+  };
+  return browser;
 }
 
 export async function tab(browser, rep, label){

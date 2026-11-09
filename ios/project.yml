@@ -1,0 +1,44 @@
+# Проект Xcode iPhone-версии сборника dvoeplay описан здесь; Games.xcodeproj делается из него командой  xcodegen  (в папке ios/).
+# Руками в Xcode настройки проекта не менять — при следующей генерации они пропадут. Менять здесь.
+name: Games
+options:
+  bundleIdPrefix: ru.dvoeplay
+  deploymentTarget:
+    iOS: "15.0"
+  createIntermediateGroups: true
+  developmentLanguage: ru
+targets:
+  Games:
+    type: application
+    platform: iOS
+    sources:
+      - path: Games
+        excludes:
+          - site
+      - path: Games/site                       # копия public/ (делает build.py): игры, net.js, tour.js, стили
+        type: folder
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ru.dvoeplay.games   # после первой загрузки в App Store не меняется никогда
+        PRODUCT_NAME: Games
+        INFOPLIST_FILE: Games/Info.plist
+        MARKETING_VERSION: "1.0.0"                     # версия для людей
+        CURRENT_PROJECT_VERSION: "1"                    # номер сборки: +1 на каждую загрузку в App Store Connect
+        TARGETED_DEVICE_FAMILY: "1"                    # только iPhone (на iPad откроется в режиме iPhone)
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        SWIFT_VERSION: "5.0"
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: R46L7NWDA7                   # команда Apple Developer: Karl Shott (Individual)
+        SUPPORTS_MACCATALYST: NO
+        SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
+        SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD: NO
+schemes:
+  Games:
+    build:
+      targets:
+        Games: all
+    run:
+      config: Debug
+    archive:
+      config: Release

@@ -194,6 +194,8 @@ body{
    жёлтая. Имена классов с приставкой: короткое .cont в этом файле уже занято
    строкой «Продолжить», и ярлык от неё растягивался на всю карточку. */
 .badge.b-cont{background:linear-gradient(180deg,#3F9BFF,#0A72E8)}
+.badge.b-secret{background:linear-gradient(180deg,#8E5CFF,#6A2FE0)}
+.hero-q span{font-size:104px;font-weight:800;line-height:1;color:rgba(255,255,255,.22);animation:float 6.4s ease-in-out infinite}
 .badge.b-fav{background:linear-gradient(180deg,var(--yel-a),var(--yel-b));color:#1C1C1E}
 /* Текст прижат к низу плашки и занимает в ней ровно столько же места
    при любой игре: высота плашки задана, название — одна строка, подпись —
@@ -473,6 +475,18 @@ body{
 @keyframes float{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,-7px)}}
 @keyframes swing{0%,100%{transform:translate(-50%,0) rotate(-4deg)}50%{transform:translate(-50%,-5px) rotate(4deg)}}
 @keyframes floatr{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-8px) rotate(-2deg)}}
+
+/* закрытая плитка: игра видна, но приглушена, сверху замок */
+.t.locked{border:0;padding:0;font:inherit;text-align:left;cursor:pointer;width:100%}
+.t.locked .q{position:absolute;left:50%;top:38%;z-index:1;transform:translate(-50%,-50%);
+  font-size:96px;font-weight:800;line-height:1;color:rgba(255,255,255,.1);letter-spacing:-2px}
+.t.locked .lk{position:absolute;left:50%;top:38%;z-index:2;width:46px;height:46px;margin:-23px 0 0 -23px;
+  border-radius:50%;background:rgba(255,255,255,.14);display:grid;place-items:center;animation:pulse 2.8s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,.18)}50%{box-shadow:0 0 0 12px rgba(255,255,255,0)}}
+@media (prefers-reduced-motion:reduce){.t.locked .lk{animation:none}}
+.t.locked .lk svg{width:24px;height:24px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.lrow{color:inherit;text-decoration:none}
+.lrow .v svg{width:22px;height:22px}
 
 /* плитка «скоро» */
 .t.soon{
@@ -769,6 +783,13 @@ textarea.nin{height:96px;min-height:96px;resize:none;line-height:1.35;font-weigh
   <button class="btn warn" id="pairReset" type="button">Обнулить счёт</button>
   <button class="btn primary" id="pairClose" type="button">Готово</button>
 </aside>
+<aside class="sheet" id="lockSheet" role="dialog" aria-modal="true" aria-labelledby="lockTitle">
+  <div class="grab"></div>
+  <h2 id="lockTitle">Секретная игра</h2>
+  <p class="sub" id="lockSub"></p>
+  <div id="lockBody"></div>
+  <button class="btn primary" id="lockClose" type="button">Понятно</button>
+</aside>
 <aside class="sheet" id="tourSheet" role="dialog" aria-modal="true" aria-labelledby="tzTitle">
   <div class="grab"></div>
   <h2 id="tzTitle">Мини-турнир</h2>
@@ -811,6 +832,9 @@ var DP=(function(){
     if(r.solved) g.solved=(g.solved||0)+1;
     g.last=Date.now(); g.note=r.note||''; g.mode=r.mode;
     d.games[id]=g;
+    /* «Сложно» пройдено — победа над ИИ (он всегда вторая сторона) или отгаданное
+       слово. Отметки открывают «Взломщика кода»; сброс статистики их не стирает. */
+    if(r.mode===1 && (r.win===1 || r.solved)){ d.hard=d.hard||{}; if(!d.hard[id]) d.hard[id]=Date.now(); }
     try{ duel(d,id,r); }catch(e){}
     write(d);
     /* итог партии — тем, кто слушает: мини-турнир (tour.js) ведёт по нему счёт.
@@ -821,6 +845,7 @@ var DP=(function(){
      настройки, а не статистика: раньше сброс стирал весь ключ, и вместе
      со счётом пропадали имена, выбранная тема и выключенный звук. */
   function clear(){ var d=read(); d.games={}; delete d.duel; write(d); }
+  function hard(){ try{ return read().hard||{}; }catch(e){ return {}; } }
 
   /* ---------- кто кого ----------
      Партия на двоих — на одном телефоне или по сети — пишется ещё и по
@@ -952,7 +977,7 @@ var DP=(function(){
     }catch(e){}
   }
   return {read:read,save:save,clear:clear,sound:sound,names:names,theme:theme,dark:dark,hero:hero,
-          pair:pair,pairReset:pairReset,day:day};
+          pair:pair,pairReset:pairReset,day:day,hard:hard};
 })();
 /* ---------- звук и тактильная отдача dvoeplay ---------- */
 /* Тот же блок стоит в index.html и во всех играх серии.
@@ -1157,7 +1182,7 @@ var GAMES=[
   {id:'viselica',        title:'Быстрая виселица',  desc:'Слово на время',                    full:'Загадайте слово за 30 секунд и отгадывайте',          href:'viselica.html',         tone:'dark', art:'hang',    ready:true},
   {id:'zahlopni-yaschik',title:'Захлопни ящик',     desc:'Закрывайте числа',                  full:'Закрывайте числа суммой броска — ящик один на двоих', href:'zahlopni-yaschik.html', tone:'yel',  art:'box',     ready:true},
   {id:'dobble',          title:'Доббль',            desc:'Кто первый найдёт',                 full:'У двух карт всегда один общий символ — найдите первым', href:'dobble.html',         tone:'red',  art:'spot',    ready:true},
-  {id:'vzlomshik',       title:'Взломщик кода',     desc:'Подберите код замка',               full:'Подберите код велозамка соперника — 4 попытки за ход', href:'vzlomshik.html', tone:'dark', art:'lock', ready:true}
+  {id:'vzlomshik',       title:'Взломщик кода',     desc:'Подберите код замка',               full:'Подберите код велозамка соперника — 4 попытки за ход', href:'vzlomshik.html', tone:'dark', art:'lock', ready:true, lock:true}
 ];
 
 var FEATURED='vzlomshik';
@@ -1276,6 +1301,16 @@ function cols(n, tpl, step){
   return out;
 }
 function byId(id){ for(var i=0;i<GAMES.length;i++) if(GAMES[i].id===id) return GAMES[i]; return null; }
+
+/* ---------- закрытая игра ----------
+   Игра с lock:true (сейчас «Взломщик кода») открывается, когда во всех
+   остальных играх пройден уровень «Сложно»: победа над ИИ или отгаданное
+   слово. Отметки ставит общий блок памяти (DP.hard) в самих играх. */
+function hardNeed(){ return GAMES.filter(function(g){ return g.ready && !g.lock; }); }
+function hardDone(){ var h=DP.hard(); return hardNeed().filter(function(g){ return !!h[g.id]; }); }
+function unlocked(){ return hardDone().length===hardNeed().length; }
+function isLocked(g){ return !!(g && g.lock) && !unlocked(); }
+function playable(g){ return !!(g && g.ready) && !isLocked(g); }
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function ago(ts){
   if(!ts) return '';
@@ -1307,12 +1342,18 @@ function heroPicks(){
   if(fav && cont && fav.g.id===cont.g.id) fav=null;      /* это одна и та же игра */
 
   var fresh=byId(FEATURED);
-  if(fresh && (!fresh.ready || (cont && cont.g.id===fresh.id))) fresh=null;
+  if(fresh && (!playable(fresh) || (cont && cont.g.id===fresh.id))) fresh=null;
 
   /* Описание игры показываем всегда — плашка прежде всего рассказывает,
      что это за игра. Повод (счёт, сколько партий) идёт отдельной строкой
      над названием и не съедает описание. */
-  if(fresh) picks.push({key:'new', label:FEATURED_LABEL, g:fresh, cta:'Играть', meta:''});
+  if(fresh) picks.push({key:'new', label:(fresh.lock?'Открыто':FEATURED_LABEL), g:fresh, cta:'Играть', meta:''});
+  /* пока игра закрыта — тизер вместо «Нового»: интрига, а не название */
+  if(GAMES.some(isLocked)){
+    var got=hardDone().length, need=hardNeed().length;
+    picks.push({key:'secret', label:'Секрет', cta:'Как открыть', meta:'Пройдено '+got+' из '+need,
+                g:{id:'secret', title:'Секретная игра', href:'#', full:'Победите на «Сложно» во всех играх — и она откроется'}});
+  }
   if(cont){
     s=cont.s;
     picks.push({key:'cont', label:'Продолжить', g:cont.g, cta:'Продолжить',
@@ -1343,7 +1384,8 @@ function renderHero(){
   var p=picks[at%picks.length];
   DP.hero(p.key);
   HERO_ID=p.g.id;
-  var art=HERO_ART[p.g.id] || '<div class="hero-generic" aria-hidden="true">'+(TILE_ART[p.g.art]||'')+'</div>';
+  var art=p.key==='secret' ? '<div class="hero-generic hero-q" aria-hidden="true"><span>?</span></div>'
+        : HERO_ART[p.g.id] || '<div class="hero-generic" aria-hidden="true">'+(TILE_ART[p.g.art]||'')+'</div>';
   document.getElementById('hero').innerHTML=
     '<a class="hero" href="'+esc(p.g.href)+'">'+
       '<span class="badge b-'+p.key+'">'+esc(p.label)+'</span>'+
@@ -1357,6 +1399,7 @@ function renderHero(){
         '<span class="play">'+esc(p.cta)+'</span>'+
       '</span>'+
     '</a>';
+  if(p.key==='secret') document.querySelector('#hero .hero').addEventListener('click',function(e){ e.preventDefault(); openLock(); });
 }
 
 /* ---------- продолжить / с чего начать ---------- */
@@ -1364,7 +1407,7 @@ function recentList(n){
   var games=DP.read().games, out=[], id;
   for(id in games){
     if(!Object.prototype.hasOwnProperty.call(games,id)) continue;
-    var g=byId(id); if(!g||!g.ready) continue;
+    var g=byId(id); if(!playable(g)) continue;
     out.push({g:g,s:games[id]});
   }
   out.sort(function(a,b){ return (b.s.last||0)-(a.s.last||0); });
@@ -1413,13 +1456,27 @@ function renderBento(){
             '</div>';
       continue;
     }
+    if(isLocked(g)){
+      var got=hardDone().length, need=hardNeed().length;
+      /* тайна: что за игра — не видно ни по названию, ни по картинке */
+      html+='<button class="t dark locked" type="button" id="lockTile" aria-label="Секретная игра — закрыта, пройдено '+got+' из '+need+'">'+
+              '<span class="q" aria-hidden="true">?</span>'+
+              '<span class="lk" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.6"/><path d="M8.2 10.5V8a3.8 3.8 0 0 1 7.6 0v2.5"/></svg></span>'+
+              '<span class="cap"><b>Секретная игра</b><i>«Сложно» во всех играх · '+got+' из '+need+'</i></span>'+
+            '</button>';
+      continue;
+    }
     html+='<a class="t '+g.tone+(g.wide?' wide':'')+'" href="'+esc(g.href)+'">'+
             '<span class="art art-'+g.art+'" aria-hidden="true">'+(TILE_ART[g.art]||'')+'</span>'+
             '<span class="cap"><b>'+esc(g.title)+'</b><i>'+esc(g.desc)+'</i></span>'+
           '</a>';
   }
   document.getElementById('bento').innerHTML=html;
-  document.getElementById('count').textContent = ready===total ? 'Все десять' : ready+' из '+total;
+  var shut=GAMES.filter(isLocked).length;
+  document.getElementById('count').textContent = shut ? 'Открыто '+(ready-shut)+' из '+total
+                                                      : (ready===total ? 'Все десять' : ready+' из '+total);
+  var lt=document.getElementById('lockTile');
+  if(lt) lt.addEventListener('click',openLock);
 }
 
 /* ---------- кто кого ---------- */
@@ -1617,8 +1674,8 @@ var CHECK="<svg viewBox='0 0 24 24' aria-hidden='true'><circle cx='12' cy='12' r
 var tz={step:1, mode:'rnd', count:3, draw:[], pick:[], f:['','']};
 var tzStopArmed=false;
 
-function tzPool(){ return GAMES.filter(function(g){ return g.ready; }).map(function(g){ return g.id; }); }
-function tzTitles(){ var o={}; GAMES.forEach(function(g){ if(g.ready) o[g.id]=g.title; }); return o; }
+function tzPool(){ return GAMES.filter(playable).map(function(g){ return g.id; }); }
+function tzTitles(){ var o={}; GAMES.forEach(function(g){ if(playable(g)) o[g.id]=g.title; }); return o; }
 function tzShuffle(){
   var p=tzPool(), i, j, x;
   for(i=p.length-1;i>0;i--){ j=(Math.random()*(i+1))|0; x=p[i]; p[i]=p[j]; p[j]=x; }
@@ -1894,6 +1951,25 @@ function plural(n,a,b,c){
   return c;
 }
 function openStats(){ renderStats(); backdrop.classList.add('on'); sheetEl.classList.add('on'); }
+
+/* ---------- как открыть закрытую игру ---------- */
+var lockSheet=document.getElementById('lockSheet');
+function openLock(){
+  var h=DP.hard(), need=hardNeed(), got=hardDone().length, html='', i, g;
+  for(i=0;i<need.length;i++){
+    g=need[i];
+    html+='<a class="srow lrow'+(h[g.id]?' ok':'')+'" href="'+esc(g.href)+'">'+
+            '<svg viewBox="0 0 64 64" aria-hidden="true">'+ICON[g.id]+'</svg>'+
+            '<span class="n"><b>'+esc(g.title)+'</b><i>'+(h[g.id]?'Пройдено на «Сложно»':(g.id==='5-bukv'||g.id==='viselica'?'Отгадайте слово на «Сложно»':'Выиграйте на «Сложно»'))+'</i></span>'+
+            '<span class="v">'+(h[g.id]?CHECK:'')+'</span>'+
+          '</a>';
+  }
+  document.getElementById('lockSub').textContent='Что это за игра — узнаете, когда во всех остальных играх будет пройден уровень «Сложно»: победа над ИИ, а в «5 буквах» и «Виселице» — отгаданное слово. Пройдено '+got+' из '+need.length+'.';
+  document.getElementById('lockBody').innerHTML='<div class="slist">'+html+'</div>';
+  backdrop.classList.add('on'); lockSheet.classList.add('on');
+}
+function closeLock(){ lockSheet.classList.remove('on'); backdrop.classList.remove('on'); }
+document.getElementById('lockClose').addEventListener('click',closeLock);
 function closeStats(){ backdrop.classList.remove('on'); sheetEl.classList.remove('on'); }
 
 /* ---------- имена игроков ---------- */
@@ -1982,6 +2058,7 @@ document.getElementById('statClose').addEventListener('click',closeStats);
 /* одна подложка на все шторки: закрывает ту, что открыта */
 function closeTop(){
   if(whoSheet.classList.contains('on')) closeWho();
+  else if(lockSheet.classList.contains('on')) closeLock();
   else if(pairSheet.classList.contains('on')) closePair();
   else if(tzSheet.classList.contains('on')) closeSetup();
   else if(tzEnd.classList.contains('on')) closeEnd();

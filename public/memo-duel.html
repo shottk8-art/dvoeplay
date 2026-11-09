@@ -730,6 +730,9 @@ var DP=(function(){
     if(r.solved) g.solved=(g.solved||0)+1;
     g.last=Date.now(); g.note=r.note||''; g.mode=r.mode;
     d.games[id]=g;
+    /* «Сложно» пройдено — победа над ИИ (он всегда вторая сторона) или отгаданное
+       слово. Отметки открывают «Взломщика кода»; сброс статистики их не стирает. */
+    if(r.mode===1 && (r.win===1 || r.solved)){ d.hard=d.hard||{}; if(!d.hard[id]) d.hard[id]=Date.now(); }
     try{ duel(d,id,r); }catch(e){}
     write(d);
     /* итог партии — тем, кто слушает: мини-турнир (tour.js) ведёт по нему счёт.
@@ -740,6 +743,7 @@ var DP=(function(){
      настройки, а не статистика: раньше сброс стирал весь ключ, и вместе
      со счётом пропадали имена, выбранная тема и выключенный звук. */
   function clear(){ var d=read(); d.games={}; delete d.duel; write(d); }
+  function hard(){ try{ return read().hard||{}; }catch(e){ return {}; } }
 
   /* ---------- кто кого ----------
      Партия на двоих — на одном телефоне или по сети — пишется ещё и по
@@ -871,7 +875,7 @@ var DP=(function(){
     }catch(e){}
   }
   return {read:read,save:save,clear:clear,sound:sound,names:names,theme:theme,dark:dark,hero:hero,
-          pair:pair,pairReset:pairReset,day:day};
+          pair:pair,pairReset:pairReset,day:day,hard:hard};
 })();
 /* ---------- звук и тактильная отдача dvoeplay ---------- */
 /* Тот же блок стоит в index.html и во всех играх серии.

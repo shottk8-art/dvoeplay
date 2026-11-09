@@ -4,7 +4,7 @@
    по кругу из тех, что сейчас есть. Здесь проверяется и сама очередь, и
    то, что любая игра в плашке выглядит целой: название не заезжает под
    кнопку, а высота карточки не скачет от игры к игре. */
-import { BASE, wait, reporter, launch } from './netkit.mjs';
+import { BASE, wait, reporter, launch, HARD } from './netkit.mjs';
 
 const rep = reporter();
 const ok = rep.ok;
@@ -17,12 +17,14 @@ async function phone(hist){
   const p = await ctx.newPage();
   /* историю кладём один раз: иначе каждая загрузка стирала бы память о том,
      какой повод показали прошлый раз, и очередь стояла бы на месте */
-  await p.addInitScript(h => {
+  await p.addInitScript(([h, hard]) => {
     try {
-      if (!localStorage.getItem('dvoeplay:v1'))
-        localStorage.setItem('dvoeplay:v1', JSON.stringify({ v:1, games: h }));
+      /* стенд (netkit) мог уже положить отметки открытой секретной игры — история ложится поверх */
+      var d = JSON.parse(localStorage.getItem('dvoeplay:v1') || 'null');
+      if (!d || !d.seeded)
+        localStorage.setItem('dvoeplay:v1', JSON.stringify({ v:1, games: h, hard: hard, seeded: 1 }));
     } catch(e){}
-  }, hist || {});
+  }, [hist || {}, HARD]);
   return p;
 }
 
@@ -65,7 +67,7 @@ const open = async (p) => { await p.goto(BASE + 'index.html'); await wait(320); 
 rep.head('первый запуск');
 const fresh = await phone(null);
 let a = await open(fresh), b = await open(fresh), c = await open(fresh);
-ok('в плашке «Новое»', a.badge === 'Новое', a.badge);
+ok('в плашке «Новое» (открытая игра — «Открыто»)', a.badge === 'Открыто', a.badge);
 ok('и она не скачет, пока истории нет',
    a.title === b.title && b.title === c.title, [a.title, b.title, c.title]);
 ok('кнопка зовёт играть', a.cta === 'Играть', a.cta);
@@ -75,13 +77,13 @@ ok('описание новинки показано целиком, без об
 rep.head('сыграна одна партия');
 const one = await phone({ 'matreshka': { plays:1, w1:1, w2:0, last:N - 3600e3, note:'Счёт 1 : 0', mode:2 } });
 a = await open(one); b = await open(one); c = await open(one);
-ok('сначала «Новое»', a.badge === 'Новое', a.badge);
+ok('сначала «Новое»', a.badge === 'Открыто', a.badge);
 ok('потом «Продолжить» с той самой игрой', b.badge === 'Продолжить' && b.title === 'Матрёшка',
    [b.badge, b.title]);
 ok('кнопка там тоже «Продолжить»', b.cta === 'Продолжить', b.cta);
 ok('в строке повода счёт и когда играли', /Счёт 1 : 0 · /.test(b.meta || ''), b.meta);
 ok('а в подписи — описание игры', b.note === 'Большая фишка накрывает меньшую', b.note);
-ok('дальше по кругу снова «Новое»', c.badge === 'Новое', c.badge);
+ok('дальше по кругу снова «Новое»', c.badge === 'Открыто', c.badge);
 ok('одной партии для «Любимой» мало', b.kind !== 'b-fav' && a.kind !== 'b-fav');
 
 /* ───────── три повода ───────── */
@@ -94,7 +96,7 @@ const many = await phone({
 const seen = [];
 for (let i = 0; i < 6; i++) seen.push(await open(many));
 ok('очередь идёт: новое → продолжить → любимая',
-   seen.map(s => s.badge).join(',') === 'Новое,Продолжить,Любимая,Новое,Продолжить,Любимая',
+   seen.map(s => s.badge).join(',') === 'Открыто,Продолжить,Любимая,Открыто,Продолжить,Любимая',
    seen.map(s => s.badge).join(','));
 ok('«Продолжить» — последняя сыгранная', seen[1].title === 'Матрёшка', seen[1].title);
 ok('«Любимая» — та, где партий больше всего', seen[2].title === 'Точки и квадраты', seen[2].title);

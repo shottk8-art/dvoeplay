@@ -50,6 +50,10 @@ TEST_BASE_URL=http://localhost:8787/ npm run test:browser
 
 Иллюстрации «Доббля» встроены в HTML и работают офлайн. Их можно заново собрать из сохранённых SVG командой `node tools/build-dobble-art.mjs`; происхождение, лицензия и адаптация описаны в `assets/dobble/README.md`.
 
+## iPhone-приложение
+
+`ios/` — обёртка для App Store / TestFlight (DVOEPLAY GAMES, `ru.dvoeplay.games`, приложение App Store Connect 6832452023). Страницы — копия `public/` внутри приложения (`python3 ios/build.py` → `ios/Games/site/`), открываются по своей схеме `dvoeplay-app://local/`, поэтому общая память и переходы работают как на сайте. Запросы `/api/…` приложение пересылает на `https://dvoeplay.netlify.app`, ссылка-приглашение ведёт на сайт. Проект — `ios/project.yml` (XcodeGen). Сборка: `ios/release.sh` (файл), `ios/release.sh upload` (сразу в TestFlight); перед каждой загрузкой `CURRENT_PROJECT_VERSION` +1.
+
 ## Публикация
 
 Netlify связан с [shottk8-art/dvoeplay](https://github.com/shottk8-art/dvoeplay), веткой `main`. Публикуется **`public/`**, серверные функции — **`netlify/functions/`**, настройки — **`netlify.toml`**. Сборка интерфейса не нужна; Netlify устанавливает зависимости из lockfile. Изменение основной ветки запускает публикацию.

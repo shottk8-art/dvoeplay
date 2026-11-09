@@ -1,7 +1,7 @@
 /* Приложение, а не сайт: установка, иконки, офлайн и Telegram.
    Здесь нет игры — проверяется то, как приложение ставится на телефон,
    открывается без сети и ведёт себя внутри мини-приложения Telegram. */
-import { BASE, wait, reporter, launch, until } from './netkit.mjs';
+import { BASE, wait, reporter, launch, until, HARD } from './netkit.mjs';
 import { spawn } from 'node:child_process';
 
 const rep = reporter();
@@ -224,10 +224,12 @@ async function telegram(scheme, stored){
     loads++;
     r.fulfill({ status: 200, contentType: 'text/javascript', body: FAKE(scheme) });
   });
-  if (stored) await ctx.addInitScript(t => {
-    try { if (!localStorage.getItem('dvoeplay:v1'))
-      localStorage.setItem('dvoeplay:v1', JSON.stringify({ v:1, theme:t, games:{} })); } catch(e){}
-  }, stored);
+  if (stored) await ctx.addInitScript(([t, hard]) => {
+    /* стенд (netkit) мог уже положить отметки открытой секретной игры — тема ложится поверх */
+    try { var d = JSON.parse(localStorage.getItem('dvoeplay:v1') || 'null');
+      if (!d || !d.seeded)
+        localStorage.setItem('dvoeplay:v1', JSON.stringify({ v:1, theme:t, games:{}, hard:hard, seeded:1 })); } catch(e){}
+  }, [stored, HARD]);
   const p = await ctx.newPage();
   return { ctx, p, loads: () => loads };
 }
