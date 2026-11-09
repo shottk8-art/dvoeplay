@@ -21,10 +21,10 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: ru.dvoeplay.games   # после первой загрузки в App Store не меняется никогда
-        PRODUCT_NAME: Games
+        PRODUCT_NAME: DvoeplayGames                   # «Games» занято в App Store (ITMS-90129, 09.11.2026)
         INFOPLIST_FILE: Games/Info.plist
         MARKETING_VERSION: "1.0.0"                     # версия для людей
-        CURRENT_PROJECT_VERSION: "1"                    # номер сборки: +1 на каждую загрузку в App Store Connect
+        CURRENT_PROJECT_VERSION: "2"                    # номер сборки: +1 на каждую загрузку в App Store Connect
         TARGETED_DEVICE_FAMILY: "1"                    # только iPhone (на iPad откроется в режиме iPhone)
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         SWIFT_VERSION: "5.0"
